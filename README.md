@@ -2,16 +2,27 @@
 
 Version-controlled home for general `.agents/skills`.
 
-This repo uses [GNU Stow](https://www.gnu.org/software/stow/) to symlink the `dotagents` package into `~`, so `npx skills` installs and updates write directly into the repo and can be reviewed with `git diff`.
+This repo uses [GNU Stow](https://www.gnu.org/software/stow/) to symlink the `agents` package into `~`, so `npx skills` installs and updates write directly into the repo and can be reviewed with `git diff`.
 
-## One-time setup
+## Install
+
+From the repo root:
 
 ```bash
-cd /Users/xlm/dev/dotagents
-stow -d . -t ~ dotagents
+stow -t ~ -S agents
 ```
 
-This makes `~/.agents` a symlink to `dotagents/.agents` in this repo.
+This makes `~/.agents` a symlink to `agents/.agents` in this repo.
+
+## Uninstall
+
+From the repo root:
+
+```bash
+stow -t ~ -D agents
+```
+
+This removes the `~/.agents` symlink. The files stay in `agents/.agents`.
 
 ## Install a third-party skill
 
@@ -37,6 +48,6 @@ After installing or updating, review the changes and commit them:
 
 ```bash
 git diff
-git add dotagents/
+git add agents/
 git commit
 ```
