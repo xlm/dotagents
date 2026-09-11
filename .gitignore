@@ -1,0 +1,10 @@
+# Editor / IDE
+.idea/
+*.swp
+*.swo
+.*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
