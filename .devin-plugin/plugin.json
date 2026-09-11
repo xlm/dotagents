@@ -1,0 +1,8 @@
+{
+  "name": "xlm",
+  "description": "Personal global rules and skills",
+  "author": {
+    "name": "xlm"
+  },
+  "skills": "agents/.agents/skills"
+}
