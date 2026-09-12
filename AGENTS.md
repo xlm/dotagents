@@ -1,9 +1,19 @@
-# Personal Rules
+# Personal rules
 
-Global, always-on defaults. Keep this file short and edit it to match your preferences.
+Global defaults for every repo. A repo's own `AGENTS.md` adds
+project-specific facts on top of these.
 
-- Prefer invoking the matching skill when one is available (e.g. `/code-review`, `/tdd`, `/domain-modeling`).
-- Before finishing, run the project's lint, type-check, and tests; keep the diff minimal.
-- Prefer editing existing files over creating new ones.
-- Do not add emojis unless explicitly requested.
-- Reference specific files and line ranges with `<ref_file>` and `<ref_snippet>` tags.
+- Never use an em dash. Use a hyphen.
+
+## On-demand rule docs
+
+Shared rule docs live in `agents/.agents/rules/` under this file's
+directory (also `~/.agents/rules/` where the repo is stowed). Load
+them when the work matches:
+
+- `code-style.md` - writing or editing code.
+- `planning.md` - planning non-trivial work.
+- `git-commits.md` - composing or reviewing commit messages or series.
+- `git-workflow.md` - branching, staging, pushing, PR series hygiene.
+- `testing.md` - writing tests, or changing a validator, parser, or
+  regex (guard-code attack matrix).

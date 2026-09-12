@@ -41,6 +41,8 @@ Installing makes the repo's root `AGENTS.md` an always-on rule in every Devin se
 
 Local plugins are linked directly to the source folder, so edits to `AGENTS.md` or skill files take effect on the next Devin session - no reinstall or `devin plugins update` needed.
 
+Shared rule docs live in `agents/.agents/rules/` (`~/.agents/rules/` under stow). The `AGENTS.md` index lists them; skills reference them as `../../rules/<doc>.md`.
+
 ### Cloud
 
 Install plugin via the Devin web app and set appropriate scopes. It is recommended to use the GitHub repo. This will propagate to Devin CLI too.
