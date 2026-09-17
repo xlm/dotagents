@@ -1,5 +1,7 @@
 # dotagents
 
+_dot agents, not [no ~asians~ agents](https://www.youtube.com/watch?v=0YM9Ereg2Zo)_
+
 Version-controlled home for general agent rules and skills.
 
 This repo can be used in two ways:
