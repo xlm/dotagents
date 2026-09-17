@@ -5,7 +5,7 @@
 1. Add a test for the primary success path. Done when the main workflow has a passing test covering its expected outputs.
 2. Add an edge-case test for each non-trivial branch or error class. If a branch does not get a test, add a PR comment explaining why.
 3. Place the test file to mirror the source layout.
-4. Keep unit tests fast and external-free; mock network, database, and external I/O.
+4. Keep unit tests fast and external-free. Mock network, database, and external I/O.
 5. Separate and gate integration and smoke tests.
 6. Keep shared fixtures stable and focused.
 

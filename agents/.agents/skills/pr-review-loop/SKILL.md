@@ -20,7 +20,7 @@ A *round* is one full pass: collect the outstanding flags, name the invariant th
 
 ## Prepare the loop state
 
-Before the first round, create a todo list with a single `Loop state` item. Set `round=1` there. Keep that single `Loop state` item as the only place for `round`, `pr_url`, `pr_url_confirmed`, `branch_matches`, `invariant`, `round_type` (`fix` or `rebuttal`), `plan` (fix plan or rebuttal text), and `stop reason`; update it each round.
+Before the first round, create a todo list with a single `Loop state` item. Set `round=1` there. Keep that single `Loop state` item as the only place for `round`, `pr_url`, `pr_url_confirmed`, `branch_matches`, `invariant`, `round_type` (`fix` or `rebuttal`), `plan` (fix plan or rebuttal text), and `stop reason`. Update it each round.
 
 Bind `pr_url` to the PR for the current branch - do not use an arbitrary or example PR URL:
 
@@ -57,12 +57,12 @@ Call `mcp__devin__devin_review_manage` with `action: get_status` and the `pr_url
 1. **Outstanding flags collected.**
    - Call `mcp__devin__devin_review_manage` with `action: get_status` and the `pr_url` from `Loop state`.
    - If the status is a terminal state that is not `completed` (e.g. `failed`, `error`), update the `Loop state` item with `stop reason: review failed` and proceed to `## Final tidy`.
-   - `action: trigger` starts a real Devin Review run on `pr_url`; call it only when `Loop state` has `pr_url_confirmed: true` and `branch_matches: true`.
+   - `action: trigger` starts a real Devin Review run on `pr_url`. Call it only when `Loop state` has `pr_url_confirmed: true` and `branch_matches: true`.
    - If `get_status` reports that no review exists, call `mcp__devin__devin_review_manage` with `action: trigger` and the `pr_url` from `Loop state`. If the status is `pending` or `running`, leave the active review running.
    - Run `## Poll the review status`.
    - Once the status is `completed`, call `mcp__devin__devin_review_manage` with `action: get_findings` and the `pr_url` from `Loop state`.
    - If a programmatic path is unavailable, ask the user to paste the outstanding flags.
-   - The `get_findings` output lists the review's findings. Keep findings whose status is `open`; drop `resolved` or `dismissed` entries.
+   - The `get_findings` output lists the review's findings. Keep findings whose status is `open`. Drop `resolved` or `dismissed` entries.
    - If the filtered list is empty, the review is clean. Update the `Loop state` item with `stop reason: review clean` and proceed to `## Final tidy`.
 
    **Done when:** the filtered list of confirmed-open flags is known, or the agent is in `## Final tidy`.
@@ -77,18 +77,18 @@ Call `mcp__devin__devin_review_manage` with `action: get_status` and the `pr_url
    **Done when:** the `Loop state` item has `invariant`, `round_type`, and `plan` set, and either the round is a fix round with a stated invariant and a described single fix, or the round is a rebuttal round with a drafted rebuttal and unchanged current code.
 
 3. **Fix applied and tests passing.**
-   - If this is a rebuttal round, the current code is unchanged; skip to step 5.
+   - If this is a rebuttal round, the current code is unchanged. Skip to step 5.
    - Apply the fix immediately.
    - For guard or validator changes, write the attack matrix (the valid, invalid, and bypass input tests the [testing.md guard code rule](../../rules/testing.md#guard-code) requires) as tests first, then run the relevant test suite.
-   - Discover the test command from the repo's `AGENTS.md`; if absent, infer from manifests (`package.json` scripts, `pyproject.toml`, etc.); if still unclear, ask the user.
+   - Discover the test command from the repo's `AGENTS.md`. If absent, infer from manifests (`package.json` scripts, `pyproject.toml`, etc.). If still unclear, ask the user.
    - If the suite fails, fix the failure and rerun it. If it still fails, show the failures and ask the user whether to approve a test skip.
 
    **Done when:** for a fix round, the fix is applied and the test suite passes, or the user has approved a test skip; for a rebuttal round, the code is unchanged and the agent is proceeding to step 5.
 
 4. **Round committed and pushed once.**
-   - If this is a rebuttal round, no code has changed; skip to step 5.
+   - If this is a rebuttal round, no code has changed. Skip to step 5.
    - Commit as logical commits per [git-workflow.md](../../rules/git-workflow.md), or as `fixup!` commits targeting the commits they amend (invoke the `fixup-squash` skill for the mechanics).
-   - Push once per round; the round gets exactly one push:
+   - Push once per round. The round gets exactly one push:
      ```
      git push
      ```

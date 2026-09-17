@@ -8,7 +8,7 @@ triggers:
 
 # Propose Commit
 
-Wait for user approval before committing; aim for a message the user can accept
+Wait for user approval before committing. Aim for a message the user can accept
 with little or no editing.
 
 ## 0. Detect the commit-msg hook
@@ -42,7 +42,7 @@ made (or the user is asked).
 
 Write a subject line that follows
 [git-commits.md](../../rules/git-commits.md#subject-and-body). Prefer an existing
-scope; the scope-listing command is in
+scope. The scope-listing command is in
 [git-commits.md](../../rules/git-commits.md#scope).
 
 If the subject has a scope, verify it appears in that list (e.g. re-run with
@@ -82,7 +82,7 @@ printf '%s\n' "$message" > "$msg_file"
 "$hook" "$msg_file" && rm -f "$msg_file"
 ```
 
-The Devin attribution footer is appended by the CLI at commit time; do not
+The Devin attribution footer is appended by the CLI at commit time. Do not
 include it in the proposal and do not flag it.
 
 **Done when:** the hook accepts the message, or no hook is present.

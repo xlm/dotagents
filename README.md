@@ -13,7 +13,7 @@ This repo can be used in two ways:
 | How skills appear | `/xlm:<skill>` (e.g. `/xlm:code-review`) | `/<skill>` (e.g. `/code-review`) |
 | `AGENTS.md` | Included: the repo root `AGENTS.md` is loaded by Devin | Not included: there is no universal global `AGENTS.md` path. Devin uses `~/.config/devin/AGENTS.md`, Claude `~/.claude/CLAUDE.md`, Cursor `~/.cursor/rules/*.mdc`, and so on. Stow only handles skills. |
 | Install (CLI) | `devin plugins install .` | `stow -t ~ -S agents` |
-| Install (Cloud) | `devin plugins install <owner>/dotagents` plus an account/enterprise/org/repo manifest; see details below | Not available - Stow is a local symlink |
+| Install (Cloud) | `devin plugins install <owner>/dotagents` plus an account/enterprise/org/repo manifest. See details below | Not available - Stow is a local symlink |
 
 If you primarily use Devin, the plugin is the simplest path: one install, global rules, and skills. If you want unnamespaced skills or need to support a non-Devin `.agents`-aware tool, use Stow. Do not use both at the same time for Devin skills unless you are happy seeing each skill twice (`/code-review` and `/xlm:code-review`).
 
@@ -41,7 +41,7 @@ Installing makes the repo's root `AGENTS.md` an always-on rule in every Devin se
 
 Local plugins are linked directly to the source folder, so edits to `AGENTS.md` or skill files take effect on the next Devin session - no reinstall or `devin plugins update` needed.
 
-Shared rule docs live in `agents/.agents/rules/` (`~/.agents/rules/` under stow). The `AGENTS.md` index lists them; skills reference them as `../../rules/<doc>.md`.
+Shared rule docs live in `agents/.agents/rules/` (`~/.agents/rules/` under stow). The `AGENTS.md` index lists them. Skills reference them as `../../rules/<doc>.md`.
 
 ### Cloud
 

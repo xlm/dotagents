@@ -19,9 +19,9 @@ We follow Conventional Commits. See [git-commits.md](git-commits.md) for the ful
 
 ## Before committing
 
-- Keep the index limited to the intended, clean changes; remove any debug or temporary content you added (stray prints/logs, scratch files); leave everything else in place.
-- Commit the related, intentional changes; leave incidental formatting or whitespace churn unstaged.
-- Put real secrets and credentials in `.env` (git-ignored) or the deploy platform's config vars; put only placeholders and comments in `.env.template`.
+- Keep the index limited to the intended, clean changes. Remove any debug or temporary content you added (stray prints/logs, scratch files). Leave everything else in place.
+- Commit the related, intentional changes. Leave incidental formatting or whitespace churn unstaged.
+- Put real secrets and credentials in `.env` (git-ignored) or the deploy platform's config vars. Put only placeholders and comments in `.env.template`.
 
 Done when:
 - `git diff --cached` contains only the intended, clean changes.
@@ -30,8 +30,8 @@ Done when:
 
 ## Before pushing
 
-- Review the unpushed series with `git log --oneline origin/main..HEAD` (or the branch's actual base). Each commit must be a single, logical step; the series as a whole must tell a coherent story. Invoke the `pre-push-review` skill before any push.
-- Run the relevant tests before pushing; find the command in the repo's `AGENTS.md` or manifests.
+- Review the unpushed series with `git log --oneline origin/main..HEAD` (or the branch's actual base). Each commit must be a single, logical step. The series as a whole must tell a coherent story. Invoke the `pre-push-review` skill before any push.
+- Run the relevant tests before pushing. Find the command in the repo's `AGENTS.md` or manifests.
 - On a branch with an open PR, batch review feedback into logical fixes instead of pushing a chain of one-line `fix:` commits. If the history becomes noisy, propose a rebuild to the user before pushing again. To drive a PR to a clean Devin Review state, use the `pr-review-loop` skill.
 - Keep an open PR's published history intact. If the user explicitly asks to rebase or force-push, warn before proceeding and re-split bundled commits as part of the rewrite.
 

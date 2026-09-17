@@ -26,7 +26,7 @@ the unpushed series is listed against it.
 
 Load the review bar before checking commits: the
 [git-commits.md](../../rules/git-commits.md) commit conventions plus this skill's
-tidy judgement. Conventions accept overrides that improve the story; the safety
+tidy judgement. Conventions accept overrides that improve the story. The safety
 invariants in [git-workflow.md](../../rules/git-workflow.md#before-committing) and
 [testing.md](../../rules/testing.md#guard-code) bind regardless.
 
@@ -109,8 +109,8 @@ was needed and the series is already clean.
 
 ## 7. Run tests
 
-Discover the test command from the repo's `AGENTS.md`; if absent, infer from
-manifests (`package.json` scripts, `pyproject.toml`, etc.); if still unclear,
+Discover the test command from the repo's `AGENTS.md`. If absent, infer from
+manifests (`package.json` scripts, `pyproject.toml`, etc.). If still unclear,
 ask the user. Run it or the most relevant subset. For changes that only touch
 documentation or skill files, you may skip the full suite if no relevant tests
 exist, but say so.

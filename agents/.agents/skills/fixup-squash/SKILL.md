@@ -22,7 +22,7 @@ base=origin/main
 branch=$(git branch --show-current)
 ```
 
-`$baseline` is also derived. Step 4 writes it to `$(git rev-parse --git-path fixup-squash-baseline)`; keep that recorded value. In a new shell, re-derive `$base` and `$branch`, then recover `$baseline` from that file:
+`$baseline` is also derived. Step 4 writes it to `$(git rev-parse --git-path fixup-squash-baseline)`. Keep that recorded value. In a new shell, re-derive `$base` and `$branch`, then recover `$baseline` from that file:
 
 ```bash
 baseline=$(cat "$(git rev-parse --git-path fixup-squash-baseline)")
@@ -34,12 +34,12 @@ If the branch uses a different upstream base, set `$base` to that (e.g.
 ### Set during the skill
 
 - `type`: `fixup`, `squash`, or `none`. Set to `none` in step 1 when the
-  follow-up is a separate commit; otherwise set to `fixup` or `squash` in step 2.
+  follow-up is a separate commit. Otherwise set to `fixup` or `squash` in step 2.
 - `target`: the commit SHA or exact subject to fold into (only when `type` is
   `fixup` or `squash`).
 - `target_kind`: `sha` or `subject` (only when `type` is `fixup` or `squash`).
 - `body`: the rationale or design decision for a `squash!` marker (only when
-  `type` is `squash`). `fixup!` markers keep the original commit message; only `squash!` markers need a body.
+  `type` is `squash`). `fixup!` markers keep the original commit message. Only `squash!` markers need a body.
 
 ## 1. Identify the target commit or commit separately
 
@@ -91,7 +91,7 @@ one matching commit between `$base` and `HEAD`.
 | New design decision or rationale that expands an earlier feature | `squash!` |
 
 The table above is the rule: `fixup!` folds the follow-up without extra
-rationale; `squash!` preserves rationale the reviewer needs.
+rationale. `squash!` preserves rationale the reviewer needs.
 
 ```bash
 type=fixup  # or squash
@@ -105,7 +105,7 @@ small follow-up or bug fix, squash for rationale or a design decision).
 Stage the follow-up changes.
 
 For a `squash!` marker, set `body` to the rationale or design decision the
-reviewer needs to see; `fixup!` markers keep the original commit message; only `squash!` markers need a body.
+reviewer needs to see. `fixup!` markers keep the original commit message. Only `squash!` markers need a body.
 
 - SHA target:
   - `fixup!`: `git commit --fixup="$target"`
@@ -155,7 +155,7 @@ GIT_EDITOR=true GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash "$base"
 
 `GIT_SEQUENCE_EDITOR=true` bypasses the rebase todo editor. `GIT_EDITOR=true`
 also bypasses the commit-message editor, which `squash!` markers would otherwise
-open. A `squash!` result will then use the combined message as-is; run
+open. A `squash!` result will then use the combined message as-is. Run
 `git commit --amend` afterwards if that message should be edited.
 
 Resolve any conflicts and run `git rebase --continue` with the same editor

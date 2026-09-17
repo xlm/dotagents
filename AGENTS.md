@@ -4,6 +4,7 @@ Global defaults for every repo. A repo's own `AGENTS.md` adds
 project-specific facts on top of these.
 
 - Never use an em dash. Use a hyphen.
+- In prose, prefer a full stop or comma over a semicolon.
 
 ## On-demand rule docs
 
