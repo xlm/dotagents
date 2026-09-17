@@ -11,9 +11,10 @@ Shared rule docs live in `agents/.agents/rules/` under this file's
 directory (also `~/.agents/rules/` where the repo is stowed). Load
 them when the work matches:
 
-- `code-style.md` - writing or editing code.
-- `planning.md` - planning non-trivial work.
-- `git-commits.md` - composing or reviewing commit messages or series.
-- `git-workflow.md` - branching, staging, pushing, PR series hygiene.
-- `testing.md` - writing tests, or changing a validator, parser, or
-  regex (guard-code attack matrix).
+- Writing or editing code: `code-style.md`.
+- Planning non-trivial work: `planning.md`.
+- Composing or reviewing commit messages or series: `git-commits.md`.
+- Branching, staging, pushing, PRs: `git-workflow.md`.
+- Creating or working in a worktree: `git-worktree.md`.
+- Writing tests, or changing a validator, parser, or regex
+  (guard-code attack matrix): `testing.md`.
