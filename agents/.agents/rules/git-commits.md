@@ -9,18 +9,18 @@ Pick the narrowest allowed type. If a change looks like a `chore`, reclassify it
 
 A `docs:` commit changes only documentation (README, `AGENTS.md`, `.agents/skills/`, or similar human-facing docs) and code comments. Code comments that explain a new `feat`/`fix` belong in the `feat`/`fix` commit. Standalone comments on already-merged code belong in a `docs:` commit. A `feat`/`fix` commit may include small, directly tied docs or comment updates if the commit stays focused.
 
-Release / version-bump-only changes: use a custom `release:` type with the version as the description (e.g., `release: 1.2.3`). Reserved solely for version bumps. A `release:` commit contains the version bump only, with no `!` or `BREAKING CHANGE:` footers.
+A `release:` commit contains only a version bump, with the version as the description (e.g., `release: 1.2.3`) and no `!` or `BREAKING CHANGE:` footer.
 
 ## Classification
 
 Classify the staged diff before composing a message:
 
-- **Docs or comments only**: the diff changes only human-facing docs, or a source file's only changes are comments/docstrings. Type is `docs`.
+- **Docs or comments only**: human-facing docs, or source files whose only changes are comments/docstrings. Type is `docs`.
 - **Style only**: formatting, lint fixes, semicolons, or whitespace with no logic, type, test, or config change. Type is `style`.
-- **Release version bump**: a version bump with no other logic. Type is `release:`.
+- **Release version bump**: type is `release`.
 - **Revert**: `revert: <subject of reverted commit>` with a body line `This reverts commit <hash>`, unquoted and without a `Revert` prefix.
-- **Merge commit**: do not propose one - rebase first. If a merge is unavoidable, create the merge then commit with `--no-verify`.
-- **Breaking change**: breaks public API or behavior and is not `release:`/`revert:`. Mark with `!` and a `BREAKING CHANGE:` footer (format below).
+- **Merge commit**: do not propose one - rebase first. If a merge seems unavoidable, ask the user.
+- **Breaking change**: breaks public API or behavior and is not `release:`/`revert:`. Append `!` after type/scope (e.g., `feat(api)!: ...`) and add a `BREAKING CHANGE:` footer describing what broke and the migration path. The footer is mandatory even when the subject has `!`.
 - **Everything else**: logic, types, tests, config, CI files, or a mix of code and small docs. Choose the narrowest allowed type that matches.
 
 Blockers: if the diff contains conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`) or temporary/debug output (e.g. `print(`, `console.log`, `debugger;`, commented-out code), stop and clean up before composing.
@@ -46,12 +46,7 @@ A scope absent from that list is new - confirm it before using it. If the list i
 - Structure a solution as an ordered progression from most isolated/least complex to most broad/complex. Lead with cleanups, one-line fixes, and mechanical edits; then model/type changes; then broader feature or app-wiring changes, ordered by how much of the request pipeline they touch.
 - Treat a manifest bump and its lockfile update as a single commit (e.g., `pyproject.toml` + `uv.lock`, or `package.json` + `pnpm-lock.yaml`).
 - Bundle a dependency bump with the code that first uses it. The consuming code is the bump's justification and the combined commit builds on its own. Pull the bump into its own preceding commit only when it is shared by multiple later commits or is a large standalone upgrade. Then say what it enables in the message.
-- When revising or rebasing a branch, re-split commits that bundle multiple concerns. A rebase corrects commit boundaries before it replays them.
-
-  > This rule applies within a rebase or revision that is already in progress.
-
-- Breaking changes: append `!` after type/scope (e.g., `feat(api)!: ...`) and add a `BREAKING CHANGE:` footer describing what broke and the migration path. The footer is mandatory. Include it even when the subject has `!`.
-
+- During a rebase or revision already in progress, re-split commits that bundle multiple concerns. A rebase corrects commit boundaries before it replays them.
 - Subject style: lowercase, no trailing period, any readable form (imperative, declarative, or noun phrase). Name the outcome. When it helps locate the change, include the concrete artifact or path (`src/auth`, `dist/bundle`). The type already classifies the change - a verb that re-says it is wasted (`feat: add metrics export` → `feat: metrics export`; `fix: fix crash on logout` → `fix: prevent crash on logout`). Use the concrete action as the verb. `support`, `enable`, `allow`, and `complete` are symptoms of a vague subject.
 
 Full message example:
