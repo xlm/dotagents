@@ -1,0 +1,22 @@
+{
+  "name": "xlm",
+  "version": "0.1.0",
+  "description": "Personal global rules and skills",
+  "author": {
+    "name": "xlm"
+  },
+  "skills": "./agents/.agents/skills",
+  "agents": [],
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf 'Global rules from %s/AGENTS.md:\\n\\n' \"${CLAUDE_PLUGIN_ROOT}\"; cat \"${CLAUDE_PLUGIN_ROOT}/AGENTS.md\""
+          }
+        ]
+      }
+    ]
+  }
+}

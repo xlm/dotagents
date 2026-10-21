@@ -1,0 +1,13 @@
+{
+  "name": "dotagents",
+  "owner": {
+    "name": "xlm"
+  },
+  "plugins": [
+    {
+      "name": "xlm",
+      "description": "Personal global rules and skills",
+      "source": "./"
+    }
+  ]
+}
