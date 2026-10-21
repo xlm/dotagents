@@ -70,7 +70,8 @@ item, and every issue found is carried into the tidy plan.
 
 ## 4. The commit value test
 
-Before keeping a late commit separate, ask:
+Apply this test to each squash candidate from step 3. A published fix that
+step 3 keeps is not a candidate. Before keeping a candidate separate, ask:
 
 1. If squashed into the parent, will the story lose information a future reader needs?
 2. Can the same information live as a code comment or in the parent commit message?
@@ -79,7 +80,7 @@ Keep the commit separate only if it captures a design decision, tradeoff,
 constraint, or gotcha not obvious in the code. Otherwise squash it and add a
 comment if needed.
 
-**Done when:** every late commit is classified keep-separate or squash, and
+**Done when:** every squash candidate is classified keep-separate or squash, and
 each kept commit names the decision, tradeoff, constraint, or gotcha it
 preserves.
 
