@@ -18,7 +18,7 @@ permissions:
 
 A *round* is one full pass: collect the outstanding flags, name the invariant they share, fix or rebut it, run the relevant tests when fixing, commit and push when fixing, and trigger the next review. Batching by invariant keeps the commit history clean and prevents a chain of review-fix commits. Run each round in one continuous turn, blocking on the review result, until the review is clean or a stop condition fires.
 
-Every `mcp__devin__devin_review_manage` call below passes the confirmed `pr_url`. `action: trigger` starts a real review run, so call it only after the PR is confirmed.
+Every `mcp__devin__devin_review_manage` call below passes the confirmed `pr_url`. `action: trigger` starts a real review run, so call it only after the PR is confirmed. If the tool is unavailable, each call goes to the user instead: ask them to trigger the review when one is needed and to paste the open flags once it completes.
 
 ## Prepare the loop state
 
@@ -44,8 +44,6 @@ Point-in-time conditions are checked inside the loop steps where they become kno
 ## Wait for the review
 
 Call `get_status`. If no review exists, call `trigger`. While the status is `pending` or `running`, `sleep 5` and call `get_status` again. If the status ends in anything other than `completed` (e.g. `failed`, `error`), set `stop reason: review failed` and go to `## Final tidy`.
-
-If `mcp__devin__devin_review_manage` is unavailable, ask the user to trigger the review when one is needed and to paste the open flags once it completes.
 
 **Done when:** the review `status` is `completed`, or you are in `## Final tidy`.
 
@@ -81,7 +79,7 @@ If `mcp__devin__devin_review_manage` is unavailable, ask the user to trigger the
 
    **Done when:** the round is committed and pushed exactly once.
 
-5. **Next review triggered and completed.** Call `trigger`, then run `## Wait for the review`.
+5. **Next review triggered and completed.** Call `trigger` (or ask the user to trigger it when the tool is unavailable), then run `## Wait for the review`.
 
    **Done when:** the review `status` is `completed`, or you are in `## Final tidy`.
 
