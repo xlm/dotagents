@@ -13,9 +13,9 @@ triggers:
 If the repo has a commit-msg hook (`git rev-parse --git-path
 hooks`/commit-msg), verify it runs.
 If the working tree is dirty, stop and ask the user to commit or stash.
-Derive or recover `$base` as in the `Variables` section of the `fixup-squash`
-skill, then inspect the unpushed series with `git log --oneline "$base"..HEAD`
-and `git diff "$base"..HEAD`.
+Set `base=origin/main` (or the branch's actual upstream base), then inspect the
+unpushed series with `git log --oneline "$base"..HEAD` and
+`git diff "$base"..HEAD`.
 For a short-lived branch with one clean commit, you may skip the full review but
 still run tests and a quick style pass.
 
@@ -24,15 +24,14 @@ the unpushed series is listed against it.
 
 ## 2. Load the review bar
 
-Load the review bar before checking commits: the
-[git-commits.md](../../rules/git-commits.md) commit conventions plus this skill's
-tidy judgement. Conventions accept overrides that improve the story. The safety
-invariants in [git-workflow.md](../../rules/git-workflow.md#before-committing) and
-[testing.md](../../rules/testing.md#guard-code) bind regardless.
+Read [git-commits.md](../../rules/git-commits.md) before checking commits. Its
+conventions plus this skill's tidy judgement are the review bar, and
+conventions accept overrides that improve the story. Three safety invariants
+bind regardless: hook-enforced rules, the guard attack matrix in
+[testing.md](../../rules/testing.md#guard-code), and no secrets per
+[git-workflow.md](../../rules/git-workflow.md#before-committing).
 
-**Done when:** before checking the first commit, you have stated the review bar
-and the three safety invariants (hook-enforced rules, guard attack matrix, no
-secrets).
+**Done when:** `git-commits.md` is loaded.
 
 ## 3. Common issues
 
