@@ -76,7 +76,7 @@ If `mcp__devin__devin_review_manage` is unavailable, ask the user to trigger the
    **Done when:** the fix is applied and the suite passes, or the user has approved a test skip.
 
 4. **Round committed and pushed once.**
-   - Commit as logical commits per [git-workflow.md](../../rules/git-workflow.md), or as `fixup!` commits targeting the commits they amend (invoke the `fixup-squash` skill for the mechanics).
+   - Commit as plain logical commits per [git-workflow.md](../../rules/git-workflow.md), so the PR's published history stays intact. `## Final tidy` decides whether to rebuild.
    - Push once with `git push`. Per-round pushes skip `pre-push-review`. `## Final tidy` runs it over the whole loop.
 
    **Done when:** the round is committed and pushed exactly once.
