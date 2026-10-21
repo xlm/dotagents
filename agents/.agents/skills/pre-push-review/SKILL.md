@@ -14,13 +14,13 @@ If the repo has a commit-msg hook (`git rev-parse --git-path
 hooks`/commit-msg), verify it runs.
 If the working tree is dirty, stop and ask the user to commit or stash.
 Set `base=origin/main` (or the branch's actual upstream base), then inspect the
-unpushed series with `git log --oneline "$base"..HEAD` and
+branch's series, pushed or not, with `git log --oneline "$base"..HEAD` and
 `git diff "$base"..HEAD`.
 For a short-lived branch with one clean commit, you may skip the full review but
 still run tests and a quick style pass.
 
 **Done when:** the hook check is done, the tree is clean, `$base` is set, and
-the unpushed series is listed against it.
+the series is listed against it.
 
 ## 2. Load the review bar
 
@@ -44,7 +44,7 @@ For each commit, check:
 - **Scope membership**: if a commit's subject has a scope, check it against the
   scopes in history before the series - run the
   [git-commits.md scope-listing command](../../rules/git-commits.md#scope)
-  against `"$base"`. An unknown scope is a finding: propose rewording to an
+  with `git log "$base"` in place of `git log`. An unknown scope is a finding: propose rewording to an
   existing scope or confirm the new scope with the user. If the list is empty,
   the scope is the first in history.
 - **`docs:` commits**: apply the
@@ -59,14 +59,15 @@ For each commit, check:
 - **Churn and dead ends**: back-and-forth or exploratory commits that add no new
   story are squash or drop candidates.
 - **Guard or validator changes**: keep the valid / invalid / bypass-input tests
-  in the same commit as the guard. See
+  in the same commit as the guard. On a published branch, a missing test goes
+  in a follow-up `test:` commit instead. See
   [testing.md guard code](../../rules/testing.md#guard-code).
 - **Secrets and credentials**: the commit contains no real secrets or
   credentials. Real values stay in `.env` (git-ignored) or config vars. See
   [git-workflow.md Before committing](../../rules/git-workflow.md#before-committing).
 
-**Done when:** every commit in the unpushed series has been checked against each
-item, and every issue found is carried into the tidy plan.
+**Done when:** every commit in the series has been checked against each item,
+and every issue found is carried into the tidy plan.
 
 ## 4. The commit value test
 
@@ -86,28 +87,31 @@ preserves.
 
 ## 5. Propose a tidy plan
 
-Present a short plan: what to reword, squash, drop, or split. Note any rule
-overrides and why they make a better story.
+Present a short plan: what to reword, squash, drop, split, or add (such as a
+missing test commit). Note any rule overrides and why they make a better
+story.
 
-**Done when:** the plan names every commit to reword, squash, drop, or split
-and why, including overrides.
+**Done when:** the plan names every commit to reword, squash, drop, split, or
+add and why, including overrides.
 
 ## 6. Execute or ask
 
-For a **local-only branch** (one that exists only on your machine), you may
-execute message-only rewords and create `fixup!` marker commits immediately. Use
-the `fixup-squash` skill for the mechanics.
+Apply rewords and squashes with the `fixup-squash` skill. New commits, such as
+a missing test, need no rewrite.
+
+For a **local-only branch** (one that exists only on your machine), execute the
+plan immediately.
 
 For a **published branch** (one that has been pushed or has an open PR), you
 must get explicit approval before any rebase, reword, squash, drop, split, or
 reset. Explain exactly what will change, show the before/after
-`git log --oneline`, and get approval. Then apply with `fixup-squash`.
+`git log --oneline`, and get approval. If the user declines, leave the history
+as is and carry the unapplied items into step 8.
 
 If no issues are found, say so and continue to tests.
 
-**Done when:** for a local-only branch, the series is clean; for a published
-branch, the user has approved the rewrite and it has been applied; or no rewrite
-was needed and the series is already clean.
+**Done when:** every plan item is applied, or declined by the user and carried
+into step 8, or no issues were found.
 
 ## 7. Run tests
 
@@ -121,8 +125,8 @@ exist, but say so.
 
 ## 8. Present the result
 
-Show the cleaned `git log --oneline "$base"..HEAD`, a one-paragraph story, and
-the test result.
+Show the cleaned `git log --oneline "$base"..HEAD`, a one-paragraph story, the
+test result, and any declined plan items.
 
 **Done when:** the user sees the final `git log --oneline "$base"..HEAD`, the
-story, and the test result.
+story, the test result, and any declined items.
