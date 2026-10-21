@@ -61,7 +61,7 @@ Call `get_status`. If no review exists, call `trigger`. While the status is `pen
    - If the new invariant matches the previous round's `invariant`, set `stop reason: repeated invariant` and go to `## Final tidy`. Otherwise record it as `invariant`.
    - Decide the `round_type` and record the `plan`:
      - **Fix round**: the invariant is real. Design one fix for it. If a flag reports one bypass of a guard, fix the whole class per the [testing.md guard code rule](../../rules/testing.md#guard-code), not just the reported instance.
-     - **Rebuttal round**: the flagged invariant is wrong. Keep the current code and draft a rebuttal that includes the flag text, severity, location, round, and the reason it is wrong. Surface it for the user to post, then skip to step 5.
+     - **Rebuttal round**: the flagged invariant is wrong. Keep the current code and draft a rebuttal that includes the flag text, severity, location, round, and the reason it is wrong. Surface it for the user to post and wait until they confirm it is posted, so the next review sees it. Then skip to step 5.
 
    **Done when:** `invariant`, `round_type`, and `plan` are set in `Loop state`.
 
