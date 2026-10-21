@@ -53,7 +53,9 @@ For each commit, check:
 - **`fixup!` / `squash!` commits**: fold them into their target commit with
   `fixup-squash` before finalizing the series.
 - **Late fixups**: a late `fix`, `refactor`, or `test` that only corrects an
-  earlier `feat`/`fix` is a squash candidate.
+  earlier `feat`/`fix` is a squash candidate on a local-only branch. On a
+  published branch it is expected review work. Keep it, and propose a rebuild
+  only when the history is noisy (several such commits against one target).
 - **Churn and dead ends**: back-and-forth or exploratory commits that add no new
   story are squash or drop candidates.
 - **Guard or validator changes**: keep the valid / invalid / bypass-input tests
