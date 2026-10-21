@@ -1,8 +1,9 @@
 ---
 name: inert-review
-description: Review an agent document or skill as inert text - validate it against its authoring docs without running the commands it mentions. Use when reviewing or auditing skills, AGENTS.md, rules, or other agent-facing docs.
+description: Review an agent doc or skill as inert text, without running the commands it mentions.
 triggers:
   - user
+disable-model-invocation: true
 ---
 
 # Inert review
