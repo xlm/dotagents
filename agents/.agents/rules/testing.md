@@ -19,6 +19,6 @@ When adding or tightening a validator, guard, parser, or regex:
 2. Add the attack matrix: tests for valid inputs, invalid inputs, and
    one bypass-coverage test per plausible bypass identified.
 
-Plausible bypasses include punctuation, quoting, Unicode numerals and combining marks, case, spacing, and missing separators.
+Plausible bypasses include punctuation, quoting, Unicode numerals and combining marks, case, spacing, and missing separators. For a numeric guard, also negatives, zero, and the values either side of each bound.
 
 Done when the invariant is stated and every class of input has a passing test.
