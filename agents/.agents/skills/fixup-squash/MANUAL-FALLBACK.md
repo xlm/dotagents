@@ -15,14 +15,17 @@ git reset --soft "$base"
 step 3 compares against `$baseline` instead. `git reset --soft "$base"` leaves
 every unpushed change staged.
 
-**Done when:** `$baseline` is printed for the record, `git diff --cached` shows
-the combined unpushed changes, and no rebase is in progress.
+**Done when:** `$baseline` is printed and kept for later shells, `git diff
+--cached` shows the combined unpushed changes, and no rebase is in progress.
 
 ## 2. Rebuild the series
 
 To rebuild commit by commit, clear the index with `git reset`, then stage and
 commit each logical change in the intended order with the intended messages.
-If you are unsure about the messages, invoke `propose-commit`.
+The original commits stay reachable from `$baseline`: `git log "$base".."$baseline"`
+lists them, and `git checkout <sha> -- <file>` restores a file as one of them
+left it. A folded target keeps its original message, plus the rationale for
+`squash!`. If you are unsure about a message, invoke `propose-commit`.
 
 **Done when:** `git log --oneline "$base"..HEAD` contains only the intended
 commits, the target commit holds the follow-up, and the working tree and index
