@@ -83,7 +83,7 @@ converge on. Then continue with the same editor settings:
 GIT_EDITOR=true GIT_SEQUENCE_EDITOR=true git rebase --continue
 ```
 
-> Manual fallback: if a conflict cannot be resolved that way or the editor still opens, follow `MANUAL-FALLBACK.md`, then return to step 5.
+> Manual fallback: if a conflict cannot be resolved that way or the editor still opens, follow `MANUAL-FALLBACK.md` instead of step 5. Its resets move `ORIG_HEAD`, so it ends with its own tree check.
 
 **Done when:** the rebase completes, `git log --oneline "$base"..HEAD` shows no
 remaining `fixup!` or `squash!` markers, and the working tree and index are
