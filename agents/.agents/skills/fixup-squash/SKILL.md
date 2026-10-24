@@ -99,10 +99,12 @@ commit, the `fixup!` or `squash!` line inside its `amend!` message), and for
 ## 4. Fold with rebase
 
 Run the rebase with editors disabled so the todo and commit-message prompts
-are bypassed:
+are bypassed. `--keep-base` replays the series onto the commit it already
+sits on, so SHAs before the first changed commit survive and upstream commits
+stay out of the fold:
 
 ```bash
-GIT_EDITOR=true GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash "$base"
+GIT_EDITOR=true GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash --keep-base "$base"
 ```
 
 A `squash!` result uses the combined message as-is. Run `git commit --amend`

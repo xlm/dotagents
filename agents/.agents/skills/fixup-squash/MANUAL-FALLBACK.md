@@ -1,19 +1,19 @@
 # Manual fallback for fixup-squash
 
-Use this when `git rebase -i --autosquash "$base"` from `fixup-squash` stops
-before completion or the editor still opens.
+Use this when `git rebase -i --autosquash --keep-base "$base"` from
+`fixup-squash` stops before completion or the editor still opens.
 
 ## 1. Abort the rebase and record the baseline
 
 ```bash
 git rebase --abort 2>/dev/null || true
 baseline=$(git rev-parse HEAD)
-git reset --soft "$base"
+git reset --soft "$(git merge-base "$base" HEAD)"
 ```
 
 `$baseline` is the marker commit's tip. The resets below move `ORIG_HEAD`, so
-step 3 compares against `$baseline` instead. `git reset --soft "$base"` leaves
-every unpushed change staged.
+step 3 compares against `$baseline` instead. Resetting to the merge base leaves
+every change in the series staged, without upstream commits.
 
 **Done when:** `$baseline` is printed and kept for later shells, `git diff
 --cached` shows the combined unpushed changes, and no rebase is in progress.
