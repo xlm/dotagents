@@ -44,9 +44,10 @@ For each commit, check:
 - **Scope membership**: if a commit's subject has a scope, check it against the
   scopes in history before the series - run the
   [git-commits.md scope-listing command](../../rules/git-commits.md#scope)
-  with `git log "$base"` in place of `git log`. An unknown scope is a finding: propose rewording to an
-  existing scope or confirm the new scope with the user. If the list is empty,
-  the scope is the first in history.
+  with `"$base"` inserted right after `git log`, keeping `--pretty=format:%s`
+  (`git log "$base" --pretty=format:%s | sed ...`). An unknown scope is a
+  finding: propose rewording to an existing scope or confirm the new scope
+  with the user. If the list is empty, the scope is the first in history.
 - **`docs:` commits**: apply the
   [git-commits.md rule](../../rules/git-commits.md#conventional-commits):
   documentation and comments only.
