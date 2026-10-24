@@ -61,35 +61,40 @@ rationale the reviewer needs. `amend!` replaces the target's message.
 
 ## 3. Create the marker commit
 
+A subject can repeat in the series, so every marker names its target by full
+SHA, which autosquash also matches.
+
 For an uncommitted follow-up, stage it, then:
 
-- `fixup!`: `git commit --fixup="$target"`
-- `squash!`: `git commit --squash="$target" -m "<rationale>"` (git supplies the
-  `squash! ...` subject and `-m` becomes the body)
+- `fixup!`: `git commit -m "fixup! $target"`
+- `squash!`: `git commit -m "squash! $target" -m "<rationale>"`
 
 A reword or a late commit takes an `amend!` marker. `--fixup=reword:` refuses
 `-m`, so write the message through a file whose first line is the
-`amend! <old subject>` that autosquash matches:
+`amend! <sha>` that autosquash matches:
 
 ```bash
 reword() { # <sha> <new message>
   f="$(git rev-parse --absolute-git-dir)/REWORD_MSG"
-  printf 'amend! %s\n\n%s\n' "$(git log -1 --format=%s "$1")" "$2" > "$f"
+  printf 'amend! %s\n\n%s\n' "$1" "$2" > "$f"
   GIT_EDITOR="cp '$f'" git commit -q --fixup=reword:"$1"; rm -f "$f"
 }
 ```
 
 - Reword: `reword "$target" "<new message>"`
 - Late commit: rename it into a marker for the target. For `fixup!`:
-  `reword "$late" "fixup! $(git log -1 --format=%s "$target")"`. For
-  `squash!`, use `squash! <target subject>`, a blank line, then the rationale.
+  `reword "$late" "fixup! $target"`. For `squash!`, use `squash! $target`, a
+  blank line, then the rationale.
 
-With several changes, create every marker before rebasing, so one rebase folds
-them all.
+Every rebase rewrites SHAs, so a marker only matches commits that existed when
+it was made. Fold each late commit on its own, before creating any other
+marker: rename it, run steps 4 and 5 twice, then re-read `target` and `late`
+from step 1 for the next change. Create the remaining markers together, so one
+rebase folds them all.
 
-**Done when:** each marker's message names its target (for a late commit, the
-`fixup!` or `squash!` line inside its `amend!` message), and for `squash!`, the
-marker carries the rationale.
+**Done when:** each marker's message names its target's full SHA (for a late
+commit, the `fixup!` or `squash!` line inside its `amend!` message), and for
+`squash!`, the marker carries the rationale.
 
 ## 4. Fold with rebase
 
