@@ -11,9 +11,9 @@ This repo can be used in two ways:
 
 | | Devin plugin | Stow package |
 |---|---|---|
-| What it gives | A global, always-on `AGENTS.md` for Devin, plus namespaced skills | Only skills, symlinked into `~/.agents/skills` for any `.agents`-aware tool |
-| How skills appear | `/xlm:<skill>` (e.g. `/xlm:code-review`) | `/<skill>` (e.g. `/code-review`) |
-| `AGENTS.md` | Included: the repo root `AGENTS.md` is loaded by Devin | Not included: there is no universal global `AGENTS.md` path. Devin uses `~/.config/devin/AGENTS.md`, Claude `~/.claude/CLAUDE.md`, Cursor `~/.cursor/rules/*.mdc`, and so on. Stow only handles skills. |
+| What it gives | A global, always-on `AGENTS.md` for Devin, plus namespaced skills | Shared skills and rule docs under `~/.agents` |
+| How to invoke skills | `/xlm:code-review` | `/code-review` in Devin, `$code-review` in Codex |
+| `AGENTS.md` | Devin loads the repo root `AGENTS.md` globally | Install global instructions separately. See [Codex setup](#codex-setup). |
 | Install (CLI) | `devin plugins install .` | `stow -t ~ -S agents` |
 | Install (Cloud) | `devin plugins install <owner>/dotagents` plus an account/enterprise/org/repo manifest. See details below | Not available - Stow is a local symlink |
 
@@ -66,8 +66,24 @@ stow -t ~ -D agents
 # The files in the repo are unaffected
 ```
 
-Installing makes `~/.agents` a symlink to `agents/.agents` in the repo. Devin (and any other `.agents`-aware tool) sees the skills at `~/.agents/skills` and exposes them unnamespaced, e.g. `/code-review`.
+Stow links the shared skills and rule docs into `~/.agents/skills` and `~/.agents/rules`.
 
+### Codex setup
+
+Run the Stow install above once for both Codex desktop and CLI. In a new Codex session, type `$code-review` to select the shared skill.
+
+To load the personal rules in every repo, run this from the dotagents root if your Codex home has no `AGENTS.md` and no non-empty `AGENTS.override.md`:
+
+```bash
+mkdir -p "${CODEX_HOME:-$HOME/.codex}"
+ln -s "$(pwd -P)/AGENTS.md" "${CODEX_HOME:-$HOME/.codex}/AGENTS.md"
+```
+
+If you already have global instructions, merge the shared rules into your existing file. Use `AGENTS.override.md` if it is non-empty. Otherwise use `AGENTS.md`.
+
+Open a new session in another repo and ask Codex to list the global instructions it loaded. To uninstall the global rules, remove the symlink you created or remove the shared rules you merged.
+
+The `pr-review-loop` skill can use the Devin Review tool when available. Otherwise it asks you to run the review and paste the findings.
 
 ## Updating `AGENTS.md` and skills
 

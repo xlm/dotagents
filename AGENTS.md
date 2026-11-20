@@ -8,9 +8,9 @@ project-specific facts on top of these.
 
 ## On-demand rule docs
 
-Shared rule docs live in `agents/.agents/rules/` under this file's
-directory (also `~/.agents/rules/` where the repo is stowed). Load
-them when the work matches:
+Shared rule docs live in `~/.agents/rules/` when installed with Stow,
+or in `agents/.agents/rules/` from the dotagents repo root. Load them
+when the work matches:
 
 - Writing or editing code: `code-style.md`.
 - Planning non-trivial work: `planning.md`.
