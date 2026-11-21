@@ -122,7 +122,7 @@ def codex_skills(root, codex, work):
         [codex, 'debug', 'prompt-input', 'hi'], cwd=work / 'empty',
         text=True, capture_output=True, check=True, timeout=30,
     ).stdout
-    actual = set(re.findall(r'xlm:[a-z-]+', prompt))
+    actual = set(re.findall(r'xlm:[a-z0-9-]+', prompt))
     actual = without_synced_skills(root, actual, expected)
     if actual != expected:
         fail(f'skills differ: missing={sorted(expected - actual)}, '
