@@ -97,6 +97,15 @@ def codex_install(root, codex, work):
                 sys.exit(result.returncode)
 
 
+def without_synced_skills(root, actual, expected):
+    # Local installs bundle synced skills, but they are not repository expectations.
+    synced = set()
+    for skill in (root / 'agents/.agents/skills/synced').rglob('SKILL.md'):
+        frontmatter = yaml.safe_load(skill.read_text().split('---', 2)[1])
+        synced.add('xlm:' + frontmatter['name'])
+    return actual - (synced - expected)
+
+
 def codex_skills(root, codex, work):
     # Codex lists implicitly invocable skills, using its own policy metadata.
     expected = set()
@@ -114,6 +123,7 @@ def codex_skills(root, codex, work):
         text=True, capture_output=True, check=True, timeout=30,
     ).stdout
     actual = set(re.findall(r'xlm:[a-z-]+', prompt))
+    actual = without_synced_skills(root, actual, expected)
     if actual != expected:
         fail(f'skills differ: missing={sorted(expected - actual)}, '
              f'unexpected={sorted(actual - expected)}', 'Codex skill discovery paths')

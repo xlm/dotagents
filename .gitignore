@@ -12,3 +12,6 @@ Thumbs.db
 # Codex project state, except the plugin marketplace
 /.agents/*
 !/.agents/plugins/
+
+# Skills synced locally by the Codex app
+/agents/.agents/skills/synced/
