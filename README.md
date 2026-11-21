@@ -203,6 +203,8 @@ devin plugins update xlm
 
 The manifest sets no `version`, which Devin treats as optional metadata. Devin caches a git install by commit, so `devin plugins update` picks up every push and `devin plugins list` shows the plugin as `unversioned`.
 
+Starting a Devin CLI session does not refresh an installed git plugin. In 3000.14.30821 a session start left a local git install on its old commit, and only installed newly required organization plugins.
+
 #### Claude Code
 
 If you have installed the [Claude Code plugin](#claude-code-plugin) from a local clone, you can directly update the repo. New sessions will pick up new rules/skills immediately.
@@ -212,6 +214,8 @@ If you have installed the Claude Code plugin from the git repo, refresh it after
 claude plugin marketplace update dotagents
 claude plugin update xlm@dotagents
 ```
+
+Claude Code can do this itself at session start, but auto-update is off by default for third-party marketplaces. Turn it on under `/plugin` > Marketplaces > dotagents. See [Claude Code plugin docs](https://code.claude.com/docs/en/discover-plugins.md).
 
 #### Codex
 
@@ -230,6 +234,8 @@ The upgrade command refreshes installed plugins too. It is only for git marketpl
 
 The Codex manifest needs no `version`. In 0.171.0, git marketplace upgrade picked up new commits both without a version and with an unchanged explicit version. Unlike Claude Code, a fixed version did not block the refresh. Without a version the cache directory ends in `local`, and with a version it ends in that version.
 
+The Codex docs describe no automatic refresh. The 0.171.0 config schema does have `marketplaces.<name>.auto_update`, default `false`, but this was not tested.
+
 Start a new Codex session after updating. Use `/hooks` to renew trust when the installed plugin bundle changes, including edits to `AGENTS.md` or the hook command. Before deploying plugin changes, run `scripts/check-plugins.py`.
 
 #### Copilot CLI
@@ -243,6 +249,8 @@ copilot plugin update xlm@dotagents
 ```
 
 `copilot plugin marketplace update dotagents` only re-fetches the catalog. `copilot plugin update xlm@dotagents` pulls the new plugin files.
+
+Custom marketplaces do not auto-update by default. Set `autoUpdate: true` on the `dotagents` entry of `extraKnownMarketplaces` in your user settings to update at the start of each interactive or `-p` session. See the [Copilot CLI plugin reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-plugin-reference).
 
 Before deploying plugin changes, run `scripts/check-plugins.py`.
 
