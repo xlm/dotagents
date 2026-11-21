@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "root=\"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}\"; printf 'Global rules from %s/AGENTS.md:\\n\\n' \"$root\"; cat \"$root/AGENTS.md\""
+          }
+        ]
+      }
+    ]
+  }
+}
