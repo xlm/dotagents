@@ -63,5 +63,16 @@ class WithoutSyncedSkillsTests(unittest.TestCase):
             checks.without_synced_skills(self.root, {'xlm:invalid'}, set())
 
 
+class PromptSkillNamesTests(unittest.TestCase):
+    def test_names_keep_digits_and_hyphens(self):
+        prompt = '- xlm:code-review: Review.\n- xlm:nextjs16 (file: x)\n'
+        self.assertEqual(
+            checks.prompt_skill_names(prompt), {'xlm:code-review', 'xlm:nextjs16'},
+        )
+
+    def test_other_namespaces_are_ignored(self):
+        self.assertEqual(checks.prompt_skill_names('other:skill xlmx:no'), set())
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -106,6 +106,10 @@ def without_synced_skills(root, actual, expected):
     return actual - (synced - expected)
 
 
+def prompt_skill_names(prompt):
+    return set(re.findall(r'xlm:[a-z0-9-]+', prompt))
+
+
 def codex_skills(root, codex, work):
     # Codex lists implicitly invocable skills, using its own policy metadata.
     expected = set()
@@ -122,7 +126,7 @@ def codex_skills(root, codex, work):
         [codex, 'debug', 'prompt-input', 'hi'], cwd=work / 'empty',
         text=True, capture_output=True, check=True, timeout=30,
     ).stdout
-    actual = set(re.findall(r'xlm:[a-z0-9-]+', prompt))
+    actual = prompt_skill_names(prompt)
     actual = without_synced_skills(root, actual, expected)
     if actual != expected:
         fail(f'skills differ: missing={sorted(expected - actual)}, '
