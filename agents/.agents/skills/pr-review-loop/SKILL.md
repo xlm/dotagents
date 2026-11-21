@@ -22,7 +22,7 @@ Every `mcp__devin__devin_review_manage` call below passes the confirmed `pr_url`
 
 ## Prepare the loop state
 
-Before the first round, create a todo list with a single `Loop state` item. Keep it as the only place for `round`, `pr_url`, `invariant`, `round_type` (`fix` or `rebuttal`), `plan` (fix plan or rebuttal text), and `stop reason`. Update it each round.
+Before the first round, create a todo list with a single `Loop state` item. If no todo tool is available, use one `Loop state` block in chat instead and repeat it, updated, each round. Keep the item or block as the only place for `round`, `pr_url`, `invariant`, `round_type` (`fix` or `rebuttal`), `plan` (fix plan or rebuttal text), and `stop reason`. Update it each round.
 
 Bind `pr_url` to the PR for the current branch - do not use an arbitrary or example PR URL:
 
@@ -30,7 +30,7 @@ Bind `pr_url` to the PR for the current branch - do not use an arbitrary or exam
 2. If `gh` fails, no PR exists, or `headRefName` differs from `git branch --show-current`, ask the user for the correct PR URL and stop.
 3. Display the derived `pr_url` and ask for explicit confirmation. If the user does not confirm, stop.
 
-**Done when:** the `Loop state` item holds `round=1` and the user-confirmed `pr_url`.
+**Done when:** the `Loop state` item or block holds `round=1` and the user-confirmed `pr_url`.
 
 ## Stop conditions
 
