@@ -31,7 +31,7 @@ Inside this repo, Claude Code, Codex and Copilot CLI also load `AGENTS.md` as pr
 From the repo root:
 ```bash
 # Install via local clone
-devin plugins install .
+devin plugins install --local .
 
 # Or install via git repo
 devin plugins install xlm/dotagents
@@ -200,6 +200,8 @@ If you have installed via [Cloud](#cloud) then new Cloud sessions will automatic
 ```bash
 devin plugins update xlm
 ```
+
+The manifest sets no `version`, which Devin treats as optional metadata. Devin caches a git install by commit, so `devin plugins update` picks up every push and `devin plugins list` shows the plugin as `unversioned`.
 
 #### Claude Code
 
