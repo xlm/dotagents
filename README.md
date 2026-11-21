@@ -133,6 +133,8 @@ stow -t ~ -D agents
 
 Installing makes `~/.agents` a symlink to `agents/.agents` in the repo. Any `.agents`-aware tool, such as Devin, sees the skills at `~/.agents/skills` and exposes them unnamespaced, e.g. `/code-review`.
 
+The Codex app writes synced skills into `~/.agents/skills/synced/`, which is `agents/.agents/skills/synced/` when stowed. A local plugin install from that checkout bundles those skills too, even though the folder is gitignored.
+
 ## Updating `AGENTS.md` and skills
 
 ### External skills
@@ -241,4 +243,3 @@ scripts/check-plugins.py
 ```
 
 The check uses throwaway Codex and Claude Code homes and removes them afterwards. Set `CODEX_BIN` or `CLAUDE_BIN` to test binaries outside `PATH`. Claude Code's no-login session lists user-invocable skills, including manual-only skills, and fires the hook before authentication fails. It does not call a model, so it cannot show that a trusted Codex session receives the rules. GitHub Actions runs the same check with Codex pinned to 0.171.0 and Claude Code to 2.1.330.
-
