@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: npm install -g @openai/codex@0.171.0 @anthropic-ai/claude-code@2.1.330
+      - run: npm install -g @openai/codex@0.171.0 @anthropic-ai/claude-code@2.1.330 @github/copilot@1.0.114
       - run: python3 -m pip install PyYAML==6.0.3
       - run: python3 -m unittest discover -s scripts -p "test_*.py"
       - run: scripts/check-plugins.py

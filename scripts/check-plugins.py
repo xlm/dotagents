@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
-"""Smoke-test this repo as a Codex and a Claude Code plugin.
+"""Smoke-test this repo as a Codex, Claude Code and Copilot CLI plugin.
 
 Checks, in order:
-  1. Shared metadata: both marketplaces and all three manifests agree.
+  1. Shared metadata: both marketplaces and all four manifests agree.
   2. Codex: installs, lists the expected xlm:* skills, and its
      session-start hook prints the root AGENTS.md.
   3. Claude Code: the same three checks.
+  4. Copilot CLI: installs, lists the expected skills, and its hook command
+     returns the root AGENTS.md in JSON additionalContext.
 
 Run: scripts/check-plugins.py
-Needs Python 3 with PyYAML, bash, codex and claude. Set CODEX_BIN or
-CLAUDE_BIN to use other binaries. No login is needed, and every install
+Needs Python 3 with PyYAML, bash, jq, codex, claude and copilot. Set CODEX_BIN,
+CLAUDE_BIN or COPILOT_BIN to use other binaries. No login is needed, and every install
 goes into a temporary home that is deleted afterwards.
 
 Each PASS line confirms one check. The first FAIL stops the run and names
 a likely cause.
 
-Not covered: real model sessions, the Devin plugin, and native Windows
-(issue #7).
+Not covered: real model sessions, the Devin plugin, and
+native Windows (issue #7).
 """
 
 import json
@@ -71,7 +73,8 @@ def check_metadata(root):
 
     try:
         manifests = [json.loads((root / folder / 'plugin.json').read_text())
-                     for folder in ('.devin-plugin', '.claude-plugin', '.codex-plugin')]
+                     for folder in ('.devin-plugin', '.claude-plugin',
+                                    '.codex-plugin', '.github/plugin')]
     except (OSError, json.JSONDecodeError):
         fail('plugin name differs', 'manifest metadata drift')
     if not all(isinstance(manifest, dict) for manifest in manifests):
@@ -309,9 +312,107 @@ def claude_hook(root, events):
     print('PASS: Claude Code SessionStart hook prints root AGENTS.md')
 
 
+def copilot_skill_names(output):
+    """Read only indented skill entries in the Plugin skills section."""
+    names = set()
+    in_plugins = False
+    for line in output.splitlines():
+        if line == 'Plugin skills:':
+            in_plugins = True
+        elif line and not line[0].isspace():
+            in_plugins = False
+        elif in_plugins and line.strip():
+            name, separator, description = line.strip().partition(' - ')
+            if not separator or not name or not description:
+                raise ValueError(f'malformed Copilot plugin skill: {line}')
+            names.add(name)
+    return names
+
+
+def run_copilot(copilot, work, args, label):
+    home = work / 'copilot-home'
+    env = {
+        'HOME': str(home),
+        'COPILOT_HOME': str(work / 'copilot-config'),
+        'XDG_CONFIG_HOME': str(home / '.config'),
+        'XDG_CACHE_HOME': str(home / '.cache'),
+        'PATH': os.environ['PATH'],
+    }
+    try:
+        result = subprocess.run(
+            [copilot, *args], cwd=work / 'empty', env=env,
+            stdin=subprocess.DEVNULL, text=True, capture_output=True, timeout=60,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        fail(f'Copilot CLI {label}: {error}', 'CLI execution or timeout')
+    (work / f'copilot-{label}.log').write_text(result.stdout + result.stderr)
+    if result.returncode != 0:
+        fail(f'Copilot CLI {label} failed: {result.stderr.strip()}',
+             'CLI or marketplace configuration')
+    return result.stdout
+
+
+def copilot_install(root, copilot, work):
+    (work / 'copilot-home').mkdir()
+    run_copilot(copilot, work, ['plugin', 'marketplace', 'add', str(root)], 'marketplace')
+    run_copilot(copilot, work, ['plugin', 'install', 'xlm@dotagents'], 'install')
+    listing = run_copilot(copilot, work, ['plugin', 'list', '--json'], 'list')
+    try:
+        plugins = json.loads(listing)
+    except json.JSONDecodeError:
+        fail('Copilot CLI plugin list is not JSON', 'CLI output format')
+    if not any(plugin['name'] == 'xlm' and plugin['marketplace'] == 'dotagents'
+               and plugin['enabled'] is True for plugin in plugins):
+        fail('Copilot CLI xlm@dotagents not listed as enabled', 'install or enablement')
+    print('PASS: Copilot CLI xlm@dotagents installed and enabled', flush=True)
+
+
+def copilot_skills(root, copilot, work):
+    # Copilot lists all plugin skills, including manual-only skills, without policy filtering.
+    expected = {
+        yaml.safe_load(skill.read_text().split('---', 2)[1])['name']
+        for skill in (root / 'agents/.agents/skills').glob('*/SKILL.md')
+    }
+    if not expected:
+        fail('Copilot CLI expected skill set is empty', 'missing skills')
+    listing = run_copilot(copilot, work, ['skill', 'list'], 'skills')
+    try:
+        actual = copilot_skill_names(listing)
+    except ValueError as error:
+        fail(str(error), 'CLI output format')
+    if actual != expected:
+        fail(f'Copilot CLI skills differ: missing={sorted(expected - actual)}, '
+             f'unexpected={sorted(actual - expected)}', 'skill paths or discovery')
+    print(f'PASS: Copilot CLI {len(expected)} expected plugin skills listed', flush=True)
+
+
+def copilot_hook(root, work):
+    config = json.loads((root / '.github/plugin/hooks.json').read_text())
+    command = config['hooks']['sessionStart'][0]['bash']
+    try:
+        result = subprocess.run(
+            ['bash', '-c', command], cwd=work / 'empty',
+            env={'PATH': os.environ['PATH'], 'PLUGIN_ROOT': str(root)},
+            stdin=subprocess.DEVNULL, text=True, capture_output=True, timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        fail(f'Copilot CLI hook: {error}', 'hook command execution or timeout')
+    if result.returncode != 0:
+        fail(f'Copilot CLI hook failed: {result.stderr.strip()}', 'hook command or jq')
+    try:
+        context = json.loads(result.stdout)['additionalContext']
+    except (json.JSONDecodeError, KeyError, TypeError):
+        fail('Copilot CLI hook returned no JSON additionalContext', 'hook output format')
+    rules = (root / 'AGENTS.md').read_text()
+    if not isinstance(context, str) or not rules or rules not in context:
+        fail('Copilot CLI hook did not return root AGENTS.md', 'hook command or rules')
+    print('PASS: Copilot CLI sessionStart hook returns root AGENTS.md in additionalContext')
+
+
 def main():
     codex = resolve_binary(os.environ.get('CODEX_BIN') or 'codex')
     claude = resolve_binary(os.environ.get('CLAUDE_BIN') or 'claude')
+    copilot = resolve_binary(os.environ.get('COPILOT_BIN') or 'copilot')
     root = Path(__file__).absolute().parent.parent
     os.chdir(root)
 
@@ -334,6 +435,11 @@ def main():
         expected = claude_install(root, claude, work)
         events = claude_skills(claude, work, expected)
         claude_hook(root, events)
+
+        print('\nCopilot CLI', flush=True)
+        copilot_install(root, copilot, work)
+        copilot_skills(root, copilot, work)
+        copilot_hook(root, work)
 
 
 if __name__ == '__main__':
