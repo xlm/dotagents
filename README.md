@@ -15,7 +15,7 @@ This repo can be used in three ways:
 | What it gives | A global, always-on `AGENTS.md` for Devin, plus namespaced skills | A global, always-on `AGENTS.md` for Claude Code, plus namespaced skills | Only skills, symlinked into `~/.agents/skills` for any `.agents`-aware tool |
 | How skills appear | `/xlm:<skill>` (e.g. `/xlm:code-review`) | `/xlm:<skill>` (e.g. `/xlm:code-review`) | `/<skill>` (e.g. `/code-review`) |
 | `AGENTS.md` | Included: the repo root `AGENTS.md` is loaded by Devin | Included: a `SessionStart` hook injects the repo root `AGENTS.md` | Not included: there is no universal global `AGENTS.md` path. Devin uses `~/.config/devin/AGENTS.md`, Claude `~/.claude/CLAUDE.md`, Cursor `~/.cursor/rules/*.mdc`, and so on. Stow only handles skills. |
-| Install (CLI) | `devin plugins install .` | `claude plugin marketplace add .` then `claude plugin install xlm@dotagents` | `stow -t ~ -S agents` |
+| Install (CLI) | `devin plugins install .` | `claude plugin marketplace add ./` then `claude plugin install xlm@dotagents` | `stow -t ~ -S agents` |
 | Install (Cloud) | `devin plugins install <owner>/dotagents` plus an account/enterprise/org/repo manifest. See details below | Not covered here | Not available - Stow is a local symlink |
 
 If you primarily use Devin, the plugin is the simplest path: one install, global rules, and skills. If you want unnamespaced skills or need to support a non-Devin `.agents`-aware tool, use Stow. Do not use both at the same time for Devin skills unless you are happy seeing each skill twice (`/code-review` and `/xlm:code-review`).
@@ -59,7 +59,7 @@ The manifest is `.claude-plugin/plugin.json`. `.claude-plugin/marketplace.json` 
 From the repo root:
 ```bash
 # Install via local clone
-claude plugin marketplace add .
+claude plugin marketplace add ./
 claude plugin install xlm@dotagents
 
 # Install via git repo
