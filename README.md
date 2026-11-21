@@ -79,7 +79,7 @@ Inside a session, `/plugin` offers the same actions.
 
 Installing injects the repo's root `AGENTS.md` into every Claude Code session through a `SessionStart` hook (it runs again after `/clear` and compaction), and exposes the skills in `agents/.agents/skills` under the `xlm:` namespace, e.g. `/xlm:code-review`. The namespace also keeps this repo's `code-review` apart from Claude Code's built-in `/code-review`.
 
-A plugin installed from a local clone is read from that folder, so edits take effect on the next session or after `/reload-plugins`. To try the plugin without installing it, run `claude --plugin-dir .`.
+A plugin installed from a local clone is read from that folder. Skill edits take effect on the next session or after `/reload-plugins`. `AGENTS.md` edits take effect on the next session, or after `/clear` or compaction, because `/reload-plugins` does not rerun the `SessionStart` hook. To try the plugin without installing it, run `claude --plugin-dir .`.
 
 The manifest sets `"agents": []`. Without it Claude Code treats the stow package's `agents/` folder as its default subagent folder and registers every rule and skill doc as a subagent.
 
