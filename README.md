@@ -243,3 +243,5 @@ scripts/check-plugins.py
 ```
 
 The check uses throwaway Codex and Claude Code homes and removes them afterwards. Set `CODEX_BIN` or `CLAUDE_BIN` to test binaries outside `PATH`. Claude Code's no-login session lists user-invocable skills, including manual-only skills, and fires the hook before authentication fails. It does not call a model, so it cannot show that a trusted Codex session receives the rules. GitHub Actions runs the same check with Codex pinned to 0.171.0 and Claude Code to 2.1.330.
+
+A signed-in Codex session with the hook trusted was seen to receive the root `AGENTS.md` rules with no `~/.codex/AGENTS.md` present.
