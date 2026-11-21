@@ -266,7 +266,7 @@ Each tool reads its own manifest and, where it uses one, its own marketplace. Th
 | `.agents/plugins/marketplace.json` | Codex marketplace `dotagents` | Codex |
 | `.github/plugin/plugin.json` | Copilot CLI manifest | Copilot CLI |
 | `.github/plugin/hooks.json` | Copilot CLI `sessionStart` hook | Copilot CLI |
-| `scripts/check-plugins.py` | Shared metadata plus Codex and Claude Code install, skill and hook checks, also run by `.github/workflows/check-plugins.yml` | You and GitHub Actions |
+| `scripts/check-plugins.py` | Shared metadata plus Codex, Claude Code and Copilot CLI install, skill and hook checks, also run by `.github/workflows/check-plugins.yml` | You and GitHub Actions |
 
 Where each tool looks:
 
@@ -289,12 +289,12 @@ The shared hook in `hooks/hooks.json` uses `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}
 
 ## Checking plugins
 
-To check metadata for all four manifests and both marketplaces, plus install, skill discovery and hook output for Codex and Claude Code, without logging in:
+To check metadata for all four manifests and both marketplaces, plus install, skill discovery and hook output for Codex, Claude Code and Copilot CLI, without logging in:
 ```bash
-# Requires Python 3 with PyYAML, codex, claude, and bash on PATH
+# Requires Python 3 with PyYAML, codex, claude, copilot, bash and jq on PATH
 scripts/check-plugins.py
 ```
 
-The check uses throwaway Codex and Claude Code homes and removes them afterwards. Set `CODEX_BIN` or `CLAUDE_BIN` to test binaries outside `PATH`. Claude Code's no-login session lists user-invocable skills, including manual-only skills, and fires the hook before authentication fails. It does not call a model, so it cannot show that a trusted Codex session receives the rules. GitHub Actions runs the same check with Codex pinned to 0.171.0 and Claude Code to 2.1.330.
+The check uses throwaway Codex, Claude Code and Copilot CLI homes and removes them afterwards. Set `CODEX_BIN`, `CLAUDE_BIN` or `COPILOT_BIN` to test binaries outside `PATH`. Claude Code's no-login session lists user-invocable skills, including manual-only skills, and fires the hook before authentication fails. Copilot CLI lists all plugin skills without invocation-policy filtering. Its hook command is run directly and checked for JSON `additionalContext` containing the root `AGENTS.md`. The check does not call a model, so it cannot show that a trusted Codex session receives the rules or that Copilot injects them into a session. GitHub Actions runs the same check with Codex pinned to 0.171.0, Claude Code to 2.1.330 and Copilot CLI to 1.0.114. The Ubuntu runner includes `jq`.
 
 A signed-in Codex session with the hook trusted was seen to receive the root `AGENTS.md` rules with no `~/.codex/AGENTS.md` present.

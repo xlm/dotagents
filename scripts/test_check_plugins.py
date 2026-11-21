@@ -63,6 +63,39 @@ class WithoutSyncedSkillsTests(unittest.TestCase):
             checks.without_synced_skills(self.root, {'xlm:invalid'}, set())
 
 
+class CopilotSkillNamesTests(unittest.TestCase):
+    def test_plugin_names_preserve_punctuation_and_digits(self):
+        self.assertEqual(
+            checks.copilot_skill_names(
+                'Plugin skills:\n  nextjs16 - Description.\n  code-review - More - detail.\n'
+            ),
+            {'nextjs16', 'code-review'},
+        )
+
+    def test_other_sections_and_description_mentions_are_ignored(self):
+        output = ('Personal skills:\n  personal - Plugin skills:\n\n'
+                  'Plugin skills:\n  owned - Description.\n\n'
+                  'Builtin skills:\n  builtin - Description.\n')
+        self.assertEqual(checks.copilot_skill_names(output), {'owned'})
+
+    def test_empty_or_missing_section(self):
+        for output in ('', 'Plugin skills:\n\n', 'Builtin skills:\n  other - Other.\n'):
+            with self.subTest(output=output):
+                self.assertEqual(checks.copilot_skill_names(output), set())
+
+    def test_heading_must_match_exactly(self):
+        for heading in ('plugin skills:', 'Plugin skills', '  Plugin skills:'):
+            with self.subTest(heading=heading):
+                self.assertEqual(
+                    checks.copilot_skill_names(heading + '\n  other - Other.\n'), set(),
+                )
+
+    def test_malformed_entry_is_rejected(self):
+        for entry in ('missing-separator', 'name - ', ' - Description.', 'name-Description.'):
+            with self.subTest(entry=entry), self.assertRaises(ValueError):
+                checks.copilot_skill_names('Plugin skills:\n  ' + entry + '\n')
+
+
 class PromptSkillNamesTests(unittest.TestCase):
     def test_names_keep_digits_and_hyphens(self):
         prompt = '- xlm:code-review: Review.\n- xlm:nextjs16 (file: x)\n'
