@@ -1,0 +1,21 @@
+name: Check plugins
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check-plugins:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm install -g @openai/codex@0.171.0 @anthropic-ai/claude-code@2.1.330
+      - run: python3 -m pip install PyYAML==6.0.3
+      - run: scripts/check-plugins.py
