@@ -8,3 +8,7 @@
 # OS
 .DS_Store
 Thumbs.db
+
+# Codex project state, except the plugin marketplace
+/.agents/*
+!/.agents/plugins/
