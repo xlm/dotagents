@@ -85,8 +85,6 @@ A plugin installed from a local clone is read from that folder. Skill edits take
 
 The manifest sets `"agents": []`. Without it Claude Code treats the stow package's `agents/` folder as its default subagent folder and registers every rule and skill doc as a subagent.
 
-The manifest sets no `version`. Claude Code then versions a git install by commit, so the [update commands](#deploying-changes) pick up every push. With a pinned version it keeps the cached copy until the version changes.
-
 ## Codex plugin
 
 Tested with Codex CLI 0.171.0. The manifest is `.codex-plugin/plugin.json`, and `.agents/plugins/marketplace.json` is the native Codex marketplace named `dotagents`. Codex prefers these over the Claude manifest and marketplace when both exist. Unlike Claude, Codex keeps the marketplace outside its manifest folder. See [Repo layout](#repo-layout).
@@ -146,8 +144,6 @@ Skills appear unnamespaced under "Plugin skills" in `copilot skill list`, e.g. `
 
 A plugin installed from a local clone is loaded live from that folder, so edits take effect on the next session. `copilot plugin install <path>` instead copies the plugin under `~/.copilot/installed-plugins/` and is deprecated in favour of the marketplace route.
 
-The manifest sets no `version`. `copilot plugin update` refreshes the installed copy without one.
-
 Uninstalling a live plugin only disables it, because nothing was copied. Removing the marketplace completes removal.
 
 A signed-in Copilot CLI 1.0.114 session was seen to receive the root `AGENTS.md` rules from both a local clone and a git install.
@@ -190,6 +186,19 @@ npx skills update
 stow -t ~ -D agents
 ```
 
+### Versioning
+
+No plugin manifest sets a `version`, so every push to `main` is a release. Each CLI caches a git install by commit and picks up new commits on its update command (see [Deploying changes](#deploying-changes)). A pinned `version` would add nothing: Claude Code keeps its cached copy until the version changes, while Devin (3000.14.30821) and Codex (0.171.0) refresh to new commits regardless of it.
+
+`plugins list` shows the deployed commit only in Claude Code. To find it in each CLI:
+
+| CLI | `list` shows | Deployed commit |
+|---|---|---|
+| Claude Code | short commit | `gitCommitSha` for `xlm@dotagents` in `~/.claude/plugins/installed_plugins.json` |
+| Devin | `unversioned` | `sha` for the dotagents entry in `~/.local/share/devin/cli/plugins_cache/resolved.json` |
+| Codex | `local` | `git -C ~/.codex/plugins/cache/dotagents/xlm/local rev-parse HEAD` |
+| Copilot CLI | nothing | Not recorded. The marketplace clone under `~/.cache/copilot/marketplaces/` holds the last fetched catalog commit. |
+
 ### Deploying changes
 
 #### Devin
@@ -200,8 +209,6 @@ If you have installed via [Cloud](#cloud) then new Cloud sessions will automatic
 ```bash
 devin plugins update xlm
 ```
-
-The manifest sets no `version`, which Devin treats as optional metadata. Devin caches a git install by commit, so `devin plugins update` picks up every push and `devin plugins list` shows the plugin as `unversioned`.
 
 Starting a Devin CLI session does not refresh an installed git plugin. In 3000.14.30821 a session start left a local git install on its old commit, and only installed newly required organization plugins.
 
@@ -231,8 +238,6 @@ codex plugin marketplace upgrade dotagents
 ```
 
 The upgrade command refreshes installed plugins too. It is only for git marketplaces, not local clones. A reinstall is also possible after refreshing the git marketplace. Reinstalling without refreshing can reuse the old marketplace snapshot.
-
-The Codex manifest needs no `version`. In 0.171.0, git marketplace upgrade picked up new commits both without a version and with an unchanged explicit version. Unlike Claude Code, a fixed version did not block the refresh. Without a version the cache directory ends in `local`, and with a version it ends in that version.
 
 The Codex docs describe no automatic refresh. The 0.171.0 config schema does have `marketplaces.<name>.auto_update`, default `false`, but this was not tested.
 
