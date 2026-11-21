@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "type": "command",
+        "bash": "jq -Rs --arg root \"$PLUGIN_ROOT\" '{additionalContext: (\"Global rules from \\($root)/AGENTS.md:\\n\\n\" + .)}' \"$PLUGIN_ROOT/AGENTS.md\""
+      }
+    ]
+  }
+}
