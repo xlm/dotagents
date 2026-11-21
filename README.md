@@ -83,6 +83,8 @@ A plugin installed from a local clone is read from that folder, so edits take ef
 
 The manifest sets `"agents": []`. Without it Claude Code treats the stow package's `agents/` folder as its default subagent folder and registers every rule and skill doc as a subagent.
 
+The manifest sets no `version`. Claude Code then versions a git install by commit, so the [update commands](#deploying-changes) pick up every push. With a pinned version it keeps the cached copy until the version changes.
+
 In this repo itself Claude Code also loads `AGENTS.md` as project instructions, so the rules appear twice here and nowhere else.
 
 ## Stow Package
