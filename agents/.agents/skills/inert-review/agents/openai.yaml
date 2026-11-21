@@ -1,0 +1,5 @@
+interface:
+  display_name: "Inert Review"
+  short_description: "Review agent docs without running their commands"
+policy:
+  allow_implicit_invocation: false
