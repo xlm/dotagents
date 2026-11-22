@@ -2,6 +2,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest import mock
 
 import yaml
 
@@ -116,6 +117,75 @@ class PromptSkillNamesTests(unittest.TestCase):
 
     def test_other_namespaces_are_ignored(self):
         self.assertEqual(checks.prompt_skill_names('other:skill xlmx:no'), set())
+
+
+class CodexHookListTests(unittest.TestCase):
+    def listed(self, *hooks, errors=()):
+        reply = {'id': 2, 'result': {'data': [{'hooks': list(hooks), 'errors': list(errors)}]}}
+        with mock.patch.object(checks, 'read_hook_reply', return_value=reply):
+            return checks.list_codex_hooks(mock.Mock(), Path('/work'))
+
+    def hook(self, path='/cache/xlm/.codex-plugin/hooks.json', **overrides):
+        return {'pluginId': 'xlm@dotagents', 'eventName': 'sessionStart', 'source': 'plugin',
+                'enabled': True, 'sourcePath': path, **overrides}
+
+    def test_one_hook_from_codex_file(self):
+        self.assertEqual(self.listed(self.hook()), [self.hook()])
+
+    def test_other_hooks_are_ignored(self):
+        others = [self.hook(pluginId='other@market'), self.hook(eventName='stop'),
+                  self.hook(source='user'), self.hook(enabled=False)]
+        self.assertEqual(self.listed(self.hook(), *others), [self.hook()])
+
+    def test_rejected_hook_sets(self):
+        cases = {
+            'no hook': [],
+            'two hooks': [self.hook(), self.hook(path='/cache/xlm/hooks/hooks.json')],
+            'shared Claude file': [self.hook(path='/cache/xlm/hooks/hooks.json')],
+            'file name without folder': [self.hook(path='/cache/xlm/my.codex-plugin/hooks.json')],
+        }
+        for case, hooks in cases.items():
+            with self.subTest(case=case), self.assertRaises(SystemExit):
+                self.listed(*hooks)
+
+    def test_hook_errors_fail(self):
+        with self.assertRaises(SystemExit):
+            self.listed(self.hook(), errors=['bad hook'])
+
+
+class ClaudeHookTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.root = Path(self.directory.name)
+        (self.root / 'AGENTS.md').write_text('rules\n')
+
+    def response(self, **overrides):
+        return {'type': 'system', 'subtype': 'hook_response', 'hook_event': 'SessionStart',
+                'exit_code': 0, 'outcome': 'success',
+                'stdout': 'Global rules from /x/AGENTS.md:\n\nrules\n', **overrides}
+
+    def test_one_successful_response(self):
+        checks.claude_hook(self.root, [{'type': 'system', 'subtype': 'init'}, self.response()])
+
+    def test_rejected_responses(self):
+        cases = {
+            'no response': [],
+            'two responses': [self.response(), self.response()],
+            'other event only': [self.response(hook_event='Stop')],
+            'nonzero exit': [self.response(exit_code=1)],
+            'failed outcome': [self.response(outcome='error')],
+            'wrong rules': [self.response(stdout='other')],
+            'missing stdout': [{k: v for k, v in self.response().items() if k != 'stdout'}],
+        }
+        for case, events in cases.items():
+            with self.subTest(case=case), self.assertRaises(SystemExit):
+                checks.claude_hook(self.root, events)
+
+    def test_empty_rules_fail(self):
+        (self.root / 'AGENTS.md').write_text('')
+        with self.assertRaises(SystemExit):
+            checks.claude_hook(self.root, [self.response()])
 
 
 if __name__ == '__main__':
