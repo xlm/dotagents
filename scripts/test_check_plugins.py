@@ -1,7 +1,12 @@
+import contextlib
 import importlib.util
+import io
+import json
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 import yaml
 
@@ -116,6 +121,94 @@ class PromptSkillNamesTests(unittest.TestCase):
 
     def test_other_namespaces_are_ignored(self):
         self.assertEqual(checks.prompt_skill_names('other:skill xlmx:no'), set())
+
+
+class SessionContextTests(unittest.TestCase):
+    def output(self, **hook_output):
+        return json.dumps({'hookSpecificOutput': hook_output})
+
+    def test_session_start_context_is_returned(self):
+        output = self.output(hookEventName='SessionStart', additionalContext='# Rules\n')
+        self.assertEqual(checks.session_context(output), '# Rules\n')
+
+    def test_plain_text_and_invalid_json_are_rejected(self):
+        for output in ('# Rules\n', '{"hookSpecificOutput": ', ''):
+            self.assertIsNone(checks.session_context(output), output)
+
+    def test_other_shapes_are_rejected(self):
+        for output in (
+            json.dumps({'additionalContext': '# Rules'}),
+            json.dumps({'additional_context': '# Rules'}),
+            json.dumps(['# Rules']),
+            json.dumps({'hookSpecificOutput': '# Rules'}),
+        ):
+            self.assertIsNone(checks.session_context(output), output)
+
+    def test_wrong_event_or_context_type_is_rejected(self):
+        for output in (
+            self.output(hookEventName='UserPromptSubmit', additionalContext='# Rules'),
+            self.output(additionalContext='# Rules'),
+            self.output(hookEventName='SessionStart'),
+            self.output(hookEventName='SessionStart', additionalContext=['# Rules']),
+            self.output(hookEventName='SessionStart', additionalContext=None),
+        ):
+            self.assertIsNone(checks.session_context(output), output)
+
+
+class CursorHookTests(unittest.TestCase):
+    def run_hook(self, result, manifest=None):
+        """Run cursor_hook on a fake plugin, with the hook command replaced by `result`."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / '.cursor-plugin').mkdir()
+            (root / 'hooks').mkdir()
+            (root / 'AGENTS.md').write_text('# Rules\n')
+            (root / '.cursor-plugin/plugin.json').write_text(json.dumps(manifest or {}))
+            hook = {'type': 'command', 'command': 'print rules'}
+            (root / 'hooks/hooks.json').write_text(
+                json.dumps({'hooks': {'SessionStart': [{'hooks': [hook]}]}}))
+            effect = result if isinstance(result, Exception) else None
+            with mock.patch.object(checks.subprocess, 'run', side_effect=effect,
+                                   return_value=result) as run, \
+                    contextlib.redirect_stdout(io.StringIO()):
+                checks.cursor_hook(root, root)
+            return run, root
+
+    def reply(self, stdout, returncode=0):
+        return subprocess.CompletedProcess([], returncode, stdout=stdout, stderr='')
+
+    def context(self, text):
+        return json.dumps({'hookSpecificOutput': {
+            'hookEventName': 'SessionStart', 'additionalContext': text}})
+
+    def test_rules_from_cursor_root_pass(self):
+        run, root = self.run_hook(self.reply(self.context('Global rules:\n\n# Rules\n')))
+        self.assertEqual(run.call_args.args[0], ['bash', '-c', 'print rules'])
+        env = run.call_args.kwargs['env']
+        self.assertEqual(env['CURSOR_PLUGIN_ROOT'], str(root))
+        self.assertNotIn('CLAUDE_PLUGIN_ROOT', env)
+        self.assertNotIn('PLUGIN_ROOT', env)
+
+    def test_own_hooks_field_fails(self):
+        with self.assertRaisesRegex(SystemExit, 'own hooks'):
+            self.run_hook(self.reply(self.context('# Rules\n')), {'hooks': './hooks.json'})
+
+    def test_bad_hook_results_fail(self):
+        for result in (
+            self.reply('# Rules\n'),
+            self.reply(self.context('# Rules\n'), returncode=1),
+            self.reply(self.context('# Other rules\n')),
+            self.reply(''),
+        ):
+            with self.subTest(result=result):
+                with self.assertRaisesRegex(SystemExit, 'CURSOR_PLUGIN_ROOT'):
+                    self.run_hook(result)
+
+    def test_execution_errors_fail(self):
+        for error in (OSError('no bash'), subprocess.TimeoutExpired('bash', 30)):
+            with self.subTest(error=error):
+                with self.assertRaisesRegex(SystemExit, 'Cursor hook: '):
+                    self.run_hook(error)
 
 
 if __name__ == '__main__':
