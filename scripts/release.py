@@ -23,8 +23,13 @@ def run(*args, input=None):
     env = {**os.environ,
            'GIT_AUTHOR_NAME': BOT_NAME, 'GIT_AUTHOR_EMAIL': BOT_EMAIL,
            'GIT_COMMITTER_NAME': BOT_NAME, 'GIT_COMMITTER_EMAIL': BOT_EMAIL}
-    result = subprocess.run(args, cwd=ROOT, env=env, input=input,
-                            check=True, capture_output=True, text=True)
+    try:
+        result = subprocess.run(args, cwd=ROOT, env=env, input=input,
+                                check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as error:
+        if error.stderr:
+            print(error.stderr, file=sys.stderr, end='')
+        raise
     return result.stdout.strip()
 
 
