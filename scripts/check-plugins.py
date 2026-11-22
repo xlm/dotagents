@@ -2,14 +2,14 @@
 """Smoke-test this repo as a Codex, Claude Code and Copilot CLI plugin.
 
 Checks, in order:
-  1. Shared metadata: both marketplaces and all four manifests agree.
+  1. Shared metadata: both marketplaces and all four manifest versions agree.
   2. Codex: installs, lists the expected xlm:* skills, and its
      session-start hook prints the root AGENTS.md.
   3. Claude Code: the same three checks.
   4. Copilot CLI: installs, lists the expected skills, and its hook command
      returns the root AGENTS.md in JSON additionalContext.
 
-Run: scripts/check-plugins.py
+Run: scripts/check-plugins.py (or --versions-only without the CLIs)
 Needs Python 3 with PyYAML, bash, jq, codex, claude and copilot. Set CODEX_BIN,
 CLAUDE_BIN or COPILOT_BIN to use other binaries. No login is needed, and every install
 goes into a temporary home that is deleted afterwards.
@@ -21,6 +21,7 @@ Not covered: real model sessions, the Devin plugin, and
 native Windows (issue #7).
 """
 
+import argparse
 import json
 import os
 from pathlib import Path
@@ -33,6 +34,8 @@ import tempfile
 import time
 
 import yaml
+
+from plugin_versions import check_versions
 
 
 def fail(message, cause):
@@ -86,6 +89,14 @@ def check_metadata(root):
         ):
             fail(f'plugin {field} differs', 'manifest metadata drift')
     print('PASS: marketplace and manifest metadata agree', flush=True)
+
+
+def check_manifest_versions(root):
+    try:
+        version = check_versions(root)
+    except (OSError, ValueError) as error:
+        fail(str(error), 'manifest version drift')
+    print(f'PASS: all four plugin versions agree ({version})', flush=True)
 
 
 def codex_install(root, codex, work):
@@ -410,10 +421,17 @@ def copilot_hook(root, work):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--versions-only', action='store_true',
+                        help='check manifest versions without installing plugins')
+    args = parser.parse_args()
+    root = Path(__file__).absolute().parent.parent
+    check_manifest_versions(root)
+    if args.versions_only:
+        return
     codex = resolve_binary(os.environ.get('CODEX_BIN') or 'codex')
     claude = resolve_binary(os.environ.get('CLAUDE_BIN') or 'claude')
     copilot = resolve_binary(os.environ.get('COPILOT_BIN') or 'copilot')
-    root = Path(__file__).absolute().parent.parent
     os.chdir(root)
 
     print('Shared metadata', flush=True)
