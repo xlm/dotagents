@@ -31,5 +31,5 @@ jobs:
         run: python3 -m pip install PyYAML==6.0.3
       - name: Run Python unit tests
         run: python3 -m unittest discover -s scripts -p "test_*.py"
-      - name: Check plugin manifests and smoke-test installs
+      - name: Check plugin metadata, installs, skills and hooks
         run: scripts/check-plugins.py
