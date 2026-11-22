@@ -13,6 +13,26 @@ from plugin_versions import MANIFESTS, check_versions
 import release
 
 
+class CommandTests(unittest.TestCase):
+    def test_failed_command_prints_stderr_and_preserves_error(self):
+        for stderr in ('remote: push rejected\n', '', None):
+            error = subprocess.CalledProcessError(1, 'git', stderr=stderr)
+            with self.subTest(stderr=stderr), mock.patch(
+                    'release.subprocess.run', side_effect=error), mock.patch(
+                    'release.sys.stderr', new_callable=io.StringIO) as output:
+                with self.assertRaises(subprocess.CalledProcessError) as raised:
+                    release.run('git', 'push')
+                self.assertIs(raised.exception, error)
+                self.assertEqual(output.getvalue(), stderr or '')
+
+    def test_missing_release_detection_preserves_stderr(self):
+        error = subprocess.CalledProcessError(1, 'gh', stderr='HTTP 404\n')
+        with mock.patch('release.subprocess.run', side_effect=error), mock.patch(
+                'release.sys.stderr', new_callable=io.StringIO) as output:
+            self.assertFalse(release.release_exists('0.3.0'))
+            self.assertEqual(output.getvalue(), 'HTTP 404\n')
+
+
 class GitHubTests(unittest.TestCase):
     def setUp(self):
         patcher = mock.patch('release.run', side_effect=self.query)
