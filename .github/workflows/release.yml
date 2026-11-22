@@ -20,17 +20,20 @@ jobs:
     concurrency:
       group: release
       cancel-in-progress: false
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out main with release tags
+        uses: actions/checkout@v6
         with:
           ref: main
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python3 -m pip install git-cliff==2.14.2 PyYAML==6.0.3
-      - name: Release current main
+      - name: Install release tools
+        run: python3 -m pip install git-cliff==2.14.2 PyYAML==6.0.3
+      - name: Release the latest main commit
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
