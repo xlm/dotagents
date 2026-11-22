@@ -3,7 +3,7 @@
 
 If main ends in a tagged release commit, recover its missing GitHub release.
 Otherwise, if main's checks passed and commits exist since the last tag,
-bump all four manifests, commit, tag, push, and publish.
+bump all five manifests, commit, tag, push, and publish.
 """
 
 import os

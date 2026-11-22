@@ -96,7 +96,7 @@ def check_manifest_versions(root):
         version = check_versions(root)
     except (OSError, ValueError) as error:
         fail(str(error), 'manifest version drift')
-    print(f'PASS: all four plugin versions agree ({version})', flush=True)
+    print(f'PASS: all five plugin versions agree ({version})', flush=True)
 
 
 def codex_install(root, codex, work):
