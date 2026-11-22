@@ -114,7 +114,7 @@ class ManifestVersionTests(unittest.TestCase):
         spec.loader.exec_module(checks)
         with contextlib.redirect_stdout(io.StringIO()) as output:
             checks.check_manifest_versions(self.root)
-        self.assertIn('PASS: all four plugin versions agree (0.2.0)', output.getvalue())
+        self.assertIn('PASS: all five plugin versions agree (0.2.0)', output.getvalue())
         (self.root / MANIFESTS[0]).unlink()
         with self.assertRaisesRegex(SystemExit, 'manifest version drift'):
             checks.check_manifest_versions(self.root)

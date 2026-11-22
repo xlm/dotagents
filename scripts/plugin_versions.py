@@ -1,4 +1,4 @@
-"""All four plugin manifests must share an unprefixed SemVer 2.0.0 string."""
+"""All five plugin manifests must share an unprefixed SemVer 2.0.0 string."""
 
 import json
 from pathlib import Path
@@ -6,7 +6,8 @@ import re
 
 
 MANIFESTS = ('.devin-plugin/plugin.json', '.claude-plugin/plugin.json',
-             '.codex-plugin/plugin.json', '.github/plugin/plugin.json')
+             '.codex-plugin/plugin.json', '.github/plugin/plugin.json',
+             '.cursor-plugin/plugin.json')
 NUMBER = r'(?:0|[1-9][0-9]*)'
 IDENTIFIER = rf'(?:{NUMBER}|[0-9]*[A-Za-z-][0-9A-Za-z-]*)'
 SEMVER = re.compile(

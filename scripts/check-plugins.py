@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""Smoke-test this repo as a Codex, Claude Code and Copilot CLI plugin.
+"""Smoke-test this repo as a Codex, Claude Code, Copilot CLI and Cursor plugin.
 
 Checks, in order:
-  1. Shared metadata: both marketplaces and all four manifest versions agree.
+  1. Shared metadata: all three marketplaces and all five manifest versions agree.
   2. Codex: installs, lists the expected xlm:* skills, and its
-     session-start hook prints the root AGENTS.md.
+     session-start hook returns the root AGENTS.md in JSON
+     hookSpecificOutput.additionalContext.
   3. Claude Code: the same three checks.
   4. Copilot CLI: installs, lists the expected skills, and its hook command
      returns the root AGENTS.md in JSON additionalContext.
+  5. Cursor: its manifest uses the shared hook, which returns the root
+     AGENTS.md given only CURSOR_PLUGIN_ROOT. Cursor CLI needs a login, so
+     nothing is installed.
 
 Run: scripts/check-plugins.py (or --versions-only without the CLIs)
 Needs Python 3 with PyYAML, bash, jq, codex, claude and copilot. Set CODEX_BIN,
@@ -17,8 +21,8 @@ goes into a temporary home that is deleted afterwards.
 Each PASS line confirms one check. The first FAIL stops the run and names
 a likely cause.
 
-Not covered: real model sessions, the Devin plugin, and
-native Windows (issue #7).
+Not covered: real model sessions, the Devin plugin, Cursor installs and
+skill discovery, and native Windows (issue #7).
 """
 
 import argparse
@@ -65,10 +69,13 @@ def json_equal(left, right):
 
 def check_metadata(root):
     try:
-        claude_shelf = json.loads((root / '.claude-plugin/marketplace.json').read_text())
-        codex_shelf = json.loads((root / '.agents/plugins/marketplace.json').read_text())
-        shelves_match = all(json_equal(claude_shelf.get(field), codex_shelf.get(field))
-                            for field in ('name', 'plugins'))
+        claude_shelf, *shelves = [
+            json.loads((root / path).read_text())
+            for path in ('.claude-plugin/marketplace.json', '.agents/plugins/marketplace.json',
+                         '.cursor-plugin/marketplace.json')
+        ]
+        shelves_match = all(json_equal(claude_shelf.get(field), shelf.get(field))
+                            for shelf in shelves for field in ('name', 'plugins'))
     except (OSError, json.JSONDecodeError, AttributeError):
         shelves_match = False
     if not shelves_match:
@@ -77,7 +84,7 @@ def check_metadata(root):
     try:
         manifests = [json.loads((root / folder / 'plugin.json').read_text())
                      for folder in ('.devin-plugin', '.claude-plugin',
-                                    '.codex-plugin', '.github/plugin')]
+                                    '.codex-plugin', '.github/plugin', '.cursor-plugin')]
     except (OSError, json.JSONDecodeError):
         fail('plugin name differs', 'manifest metadata drift')
     if not all(isinstance(manifest, dict) for manifest in manifests):
@@ -96,7 +103,7 @@ def check_manifest_versions(root):
         version = check_versions(root)
     except (OSError, ValueError) as error:
         fail(str(error), 'manifest version drift')
-    print(f'PASS: all four plugin versions agree ({version})', flush=True)
+    print(f'PASS: all five plugin versions agree ({version})', flush=True)
 
 
 def codex_install(root, codex, work):
@@ -109,6 +116,18 @@ def codex_install(root, codex, work):
             result = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT)
             if result.returncode != 0:
                 sys.exit(result.returncode)
+
+
+def session_context(output):
+    """Return the context a SessionStart hook's JSON output adds, or None."""
+    try:
+        hook_output = json.loads(output)['hookSpecificOutput']
+    except (json.JSONDecodeError, KeyError, TypeError):
+        return None
+    if not isinstance(hook_output, dict) or hook_output.get('hookEventName') != 'SessionStart':
+        return None
+    context = hook_output.get('additionalContext')
+    return context if isinstance(context, str) else None
 
 
 def without_synced_skills(root, actual, expected):
@@ -208,18 +227,21 @@ def codex_hook(root, codex, work):
         try:
             hooks = list_codex_hooks(server, work)
             rules = (root / 'AGENTS.md').read_text()
-            # Exercise Codex's expanded command without supplying a root ourselves.
+            # Codex runs the hook with PLUGIN_ROOT set to its cached copy.
+            cache = next((work / 'home/plugins/cache/dotagents/xlm').iterdir())
             env = {key: value for key, value in os.environ.items()
-                   if key not in ('PLUGIN_ROOT', 'CLAUDE_PLUGIN_ROOT')}
+                   if key not in ('CLAUDE_PLUGIN_ROOT', 'CURSOR_PLUGIN_ROOT')}
+            env['PLUGIN_ROOT'] = str(cache)
             for hook in hooks:
                 result = subprocess.run(
                     ['bash', '-c', hook['command']], cwd=work / 'empty', env=env,
                     text=True, capture_output=True, timeout=30,
                 )
-                if result.returncode != 0 or not rules or rules not in result.stdout:
-                    fail('xlm sessionStart hook did not print root AGENTS.md',
-                         'hook command or cached rules')
-            print('PASS: xlm sessionStart hook prints root AGENTS.md')
+                context = session_context(result.stdout)
+                if result.returncode != 0 or not rules or context is None or rules not in context:
+                    fail('xlm sessionStart hook did not return root AGENTS.md',
+                         'hook command, jq, or cached rules')
+            print('PASS: xlm sessionStart hook returns root AGENTS.md')
         finally:
             server.terminate()
             server.communicate(timeout=10)
@@ -315,12 +337,13 @@ def claude_hook(root, events):
     if not rules or not any(
         event.get('type') == 'system' and event.get('subtype') == 'hook_response'
         and event.get('hook_event') == 'SessionStart' and event.get('exit_code') == 0
-        and event.get('outcome') == 'success' and rules in event.get('stdout', '')
+        and event.get('outcome') == 'success'
+        and rules in (session_context(event.get('stdout', '')) or '')
         for event in events
     ):
-        fail('Claude Code SessionStart hook did not print root AGENTS.md',
-             'hook registration, command, or rules')
-    print('PASS: Claude Code SessionStart hook prints root AGENTS.md')
+        fail('Claude Code SessionStart hook did not return root AGENTS.md',
+             'hook registration, command, jq, or rules')
+    print('PASS: Claude Code SessionStart hook returns root AGENTS.md')
 
 
 def copilot_skill_names(output):
@@ -397,27 +420,50 @@ def copilot_skills(root, copilot, work):
     print(f'PASS: Copilot CLI {len(expected)} expected plugin skills listed', flush=True)
 
 
-def copilot_hook(root, work):
-    config = json.loads((root / '.github/plugin/hooks.json').read_text())
-    command = config['hooks']['sessionStart'][0]['bash']
+def context_hook(root, work, tool, config, root_variable, field):
+    """Run a sessionStart hook command that returns AGENTS.md as JSON context."""
+    hook = json.loads((root / config).read_text())['hooks']['sessionStart'][0]
+    command = hook.get('bash') or hook.get('command')
     try:
         result = subprocess.run(
             ['bash', '-c', command], cwd=work / 'empty',
-            env={'PATH': os.environ['PATH'], 'PLUGIN_ROOT': str(root)},
+            env={'PATH': os.environ['PATH'], root_variable: str(root)},
             stdin=subprocess.DEVNULL, text=True, capture_output=True, timeout=30,
         )
     except (OSError, subprocess.TimeoutExpired) as error:
-        fail(f'Copilot CLI hook: {error}', 'hook command execution or timeout')
+        fail(f'{tool} hook: {error}', 'hook command execution or timeout')
     if result.returncode != 0:
-        fail(f'Copilot CLI hook failed: {result.stderr.strip()}', 'hook command or jq')
+        fail(f'{tool} hook failed: {result.stderr.strip()}', 'hook command or jq')
     try:
-        context = json.loads(result.stdout)['additionalContext']
+        context = json.loads(result.stdout)[field]
     except (json.JSONDecodeError, KeyError, TypeError):
-        fail('Copilot CLI hook returned no JSON additionalContext', 'hook output format')
+        fail(f'{tool} hook returned no JSON {field}', 'hook output format')
     rules = (root / 'AGENTS.md').read_text()
     if not isinstance(context, str) or not rules or rules not in context:
-        fail('Copilot CLI hook did not return root AGENTS.md', 'hook command or rules')
-    print('PASS: Copilot CLI sessionStart hook returns root AGENTS.md in additionalContext')
+        fail(f'{tool} hook did not return root AGENTS.md', 'hook command or rules')
+    print(f'PASS: {tool} sessionStart hook returns root AGENTS.md in {field}', flush=True)
+
+
+def cursor_hook(root, work):
+    # Without a hooks field, Cursor reads the shared hooks/hooks.json.
+    manifest = json.loads((root / '.cursor-plugin/plugin.json').read_text())
+    if 'hooks' in manifest:
+        fail('Cursor manifest has its own hooks', 'hooks field in .cursor-plugin/plugin.json')
+    hooks = json.loads((root / 'hooks/hooks.json').read_text())['hooks']['SessionStart']
+    command = hooks[0]['hooks'][0]['command']
+    try:
+        result = subprocess.run(
+            ['bash', '-c', command], cwd=work / 'empty',
+            env={'PATH': os.environ['PATH'], 'CURSOR_PLUGIN_ROOT': str(root)},
+            stdin=subprocess.DEVNULL, text=True, capture_output=True, timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired) as error:
+        fail(f'Cursor hook: {error}', 'hook command execution or timeout')
+    rules = (root / 'AGENTS.md').read_text()
+    if result.returncode != 0 or rules not in (session_context(result.stdout) or ''):
+        fail('Cursor hook did not return root AGENTS.md from CURSOR_PLUGIN_ROOT',
+             'root fallback in hooks/hooks.json')
+    print('PASS: Cursor shared SessionStart hook returns root AGENTS.md', flush=True)
 
 
 def main():
@@ -457,7 +503,11 @@ def main():
         print('\nCopilot CLI', flush=True)
         copilot_install(root, copilot, work)
         copilot_skills(root, copilot, work)
-        copilot_hook(root, work)
+        context_hook(root, work, 'Copilot CLI', '.github/plugin/hooks.json',
+                     'PLUGIN_ROOT', 'additionalContext')
+
+        print('\nCursor', flush=True)
+        cursor_hook(root, work)
 
 
 if __name__ == '__main__':

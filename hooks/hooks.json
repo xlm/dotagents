@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "root=\"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}\"; printf 'Global rules from %s/AGENTS.md:\\n\\n' \"$root\"; cat \"$root/AGENTS.md\""
+            "command": "root=\"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-${CURSOR_PLUGIN_ROOT}}}\"; jq -Rs --arg root \"$root\" '{hookSpecificOutput: {hookEventName: \"SessionStart\", additionalContext: (\"Global rules from \\($root)/AGENTS.md:\\n\\n\" + .)}}' \"$root/AGENTS.md\""
           }
         ]
       }
