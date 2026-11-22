@@ -148,8 +148,10 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(check_versions(self.root), '0.3.0')
         self.assertEqual(self.git('show', '-s', '--format=%s'), 'release: 0.3.0')
         self.assertEqual(self.git('show', '-s', '--format=%an|%ae|%cn|%ce'),
-                         f'{BOT["GIT_AUTHOR_NAME"]}|{BOT["GIT_AUTHOR_EMAIL"]}|'
-                         f'{BOT["GIT_COMMITTER_NAME"]}|{BOT["GIT_COMMITTER_EMAIL"]}')
+                         'github-actions[bot]|'
+                         '41898282+github-actions[bot]@users.noreply.github.com|'
+                         'github-actions[bot]|'
+                         '41898282+github-actions[bot]@users.noreply.github.com')
         head = self.git('rev-parse', 'HEAD')
         self.assertEqual(self.git('rev-parse', '0.3.0'), head)
         self.assertEqual(self.git('--git-dir=' + str(self.remote), 'rev-parse', 'main'), head)
