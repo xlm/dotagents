@@ -17,15 +17,28 @@ class VersionTests(unittest.TestCase):
             with self.subTest(version=version):
                 self.assertEqual(validate_version(version), version)
 
-    def test_invalid_and_bypass_inputs(self):
-        for version in (None, True, 123, 1.2, [], {}, '', 'v1.2.3', 'V1.2.3',
-                        '1.2', '1', '1.2.3.4', '01.2.3', '1.02.3', '1.2.03',
-                        '-1.2.3', '1.2.-3', ' 1.2.3', '1.2.3 ', '1.2.3\n',
-                        '1.2.3\x00', '"1.2.3"', '１.2.3', '١.2.3', '1\u0301.2.3',
-                        '1,2,3', '1x2x3', '123', '1.2.3-', '1.2.3+',
-                        '1.2.3-01', '1.2.3-a..b', '1.2.3+a_b', '1.2.3+é'):
-            with self.subTest(version=version), self.assertRaises(ValueError):
-                validate_version(version)
+    def test_rejects_invalid_semver(self):
+        cases = {
+            'value is not a string': (None, True, 123, 1.2, [], {}),
+            'empty version': ('',),
+            'version starts with v': ('v1.2.3', 'V1.2.3'),
+            'wrong number of version components': ('1.2', '1', '1.2.3.4', '123'),
+            'leading zero in version number': ('01.2.3', '1.02.3', '1.2.03'),
+            'negative version number': ('-1.2.3', '1.2.-3'),
+            'surrounding whitespace': (' 1.2.3', '1.2.3 '),
+            'trailing control character': ('1.2.3\n', '1.2.3\x00'),
+            'surrounding quotes': ('"1.2.3"',),
+            'non-ASCII digit': ('１.2.3', '١.2.3'),
+            'combining mark after a digit': ('1\u0301.2.3',),
+            'separators other than dots': ('1,2,3', '1x2x3'),
+            'empty prerelease or build identifier': ('1.2.3-', '1.2.3+', '1.2.3-a..b'),
+            'leading zero in numeric prerelease identifier': ('1.2.3-01',),
+            'invalid character in build metadata': ('1.2.3+a_b', '1.2.3+é'),
+        }
+        for case, versions in cases.items():
+            for version in versions:
+                with self.subTest(case=case, version=version), self.assertRaises(ValueError):
+                    validate_version(version)
 
 
 class ManifestVersionTests(unittest.TestCase):

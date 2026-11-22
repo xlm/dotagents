@@ -48,9 +48,15 @@ class GitHubTests(unittest.TestCase):
                               check=True, capture_output=True, text=True).stdout.strip()
 
     def check(self, **changes):
-        return dict(id=1, name='Validate plugins and run smoke tests', head_sha='abc',
-                    app={'slug': 'github-actions'}, status='completed',
-                    conclusion='success', **changes)
+        return {
+            'id': 1,
+            'name': 'Validate plugins and run smoke tests',
+            'head_sha': 'abc',
+            'app': {'slug': 'github-actions'},
+            'status': 'completed',
+            'conclusion': 'success',
+            **changes,
+        }
 
     def test_check_name_matches_workflow(self):
         workflow = release.ROOT / '.github/workflows/check-plugins.yml'
@@ -66,21 +72,32 @@ class GitHubTests(unittest.TestCase):
             '?check_name=Validate%20plugins%20and%20run%20smoke%20tests&filter=latest',
             '--jq'))
 
-    def test_missing_failed_pending_and_unrelated_checks(self):
-        changes = [None, {'conclusion': 'failure'}, {'conclusion': 'cancelled'},
-                   {'status': 'in_progress', 'conclusion': None},
-                   {'name': 'check-plugins'},
-                   {'name': 'Validate plugins and run smoke tests (other)'},
-                   {'name': 'validate plugins and run smoke tests'},
-                   {'name': 'Validate plugins and run smoke tests\n'}, {'head_sha': 'other'},
-                   {'app': {'slug': 'other'}}]
-        for change in changes:
-            with self.subTest(change=change):
-                self.runs = [] if change is None else [{**self.check(), **change}]
+    def test_rejects_missing_unsuccessful_and_unrelated_checks(self):
+        cases = {
+            'no check runs': [],
+            'failed check': [self.check(conclusion='failure')],
+            'cancelled check': [self.check(conclusion='cancelled')],
+            'check still running': [self.check(status='in_progress', conclusion=None)],
+            'old job name': [self.check(name='check-plugins')],
+            'extra text in job name': [
+                self.check(name='Validate plugins and run smoke tests (other)'),
+            ],
+            'wrong capitalization': [
+                self.check(name='validate plugins and run smoke tests'),
+            ],
+            'trailing newline in job name': [
+                self.check(name='Validate plugins and run smoke tests\n'),
+            ],
+            'different commit': [self.check(head_sha='other')],
+            'different GitHub app': [self.check(app={'slug': 'other'})],
+        }
+        for case, runs in cases.items():
+            with self.subTest(case=case):
+                self.runs = runs
                 self.assertFalse(release.checks_passed('abc'))
 
     def test_newer_failed_rerun_overrides_older_success(self):
-        newer = {**self.check(), 'id': 2, 'conclusion': 'failure'}
+        newer = self.check(id=2, conclusion='failure')
         self.runs = [newer, self.check()]
         self.assertFalse(release.checks_passed('abc'))
         self.runs.reverse()
@@ -282,9 +299,15 @@ class ReleaseTests(unittest.TestCase):
         self.checks_passed.assert_not_called()
 
     def test_malformed_release_subject_cannot_bypass_checks(self):
-        for message in ('release:v0.3.0', 'release: v0.3.0', 'release: 0.3',
-                        'release: ０.3.0', 'release: 0.3.0 extra'):
-            with self.subTest(message=message):
+        cases = {
+            'no space before v-prefixed version': 'release:v0.3.0',
+            'version starts with v': 'release: v0.3.0',
+            'missing patch number': 'release: 0.3',
+            'full-width digit': 'release: ０.3.0',
+            'extra text after version': 'release: 0.3.0 extra',
+        }
+        for case, message in cases.items():
+            with self.subTest(case=case, message=message):
                 self.change(message)
                 with self.assertRaises(ValueError):
                     self.execute()
