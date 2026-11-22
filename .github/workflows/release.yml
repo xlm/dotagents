@@ -33,4 +33,5 @@ jobs:
       - name: Release current main
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: python3 scripts/release.py
