@@ -10,18 +10,26 @@ permissions:
 
 jobs:
   check-plugins:
+    name: Validate plugins and run smoke tests
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v6
+      - name: Check out source code
+        uses: actions/checkout@v6
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v7
+      - name: Set up Node.js for plugin CLIs
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: npm install -g @openai/codex@0.171.0 @anthropic-ai/claude-code@2.1.330 @github/copilot@1.0.114
-      - run: python3 -m pip install PyYAML==6.0.3
-      - run: python3 -m unittest discover -s scripts -p "test_*.py"
-      - run: scripts/check-plugins.py
+      - name: Install plugin CLIs for smoke tests
+        run: npm install -g @openai/codex@0.171.0 @anthropic-ai/claude-code@2.1.330 @github/copilot@1.0.114
+      - name: Install PyYAML for plugin validation
+        run: python3 -m pip install PyYAML==6.0.3
+      - name: Run Python unit tests
+        run: python3 -m unittest discover -s scripts -p "test_*.py"
+      - name: Check plugin manifests and smoke-test installs
+        run: scripts/check-plugins.py

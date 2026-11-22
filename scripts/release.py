@@ -10,12 +10,14 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+from urllib.parse import quote
 
 from plugin_versions import MANIFESTS, set_version, validate_version
 
 ROOT = Path(__file__).resolve().parent.parent
 BOT_NAME = 'github-actions[bot]'
 BOT_EMAIL = '41898282+github-actions[bot]@users.noreply.github.com'
+CHECK_NAME = 'Validate plugins and run smoke tests'
 
 
 def run(*args, input=None):
@@ -34,10 +36,10 @@ def run(*args, input=None):
 
 
 def checks_passed(sha):
-    """True if the newest GitHub Actions check-plugins run succeeded."""
+    """True if the newest GitHub Actions plugin check succeeded."""
     return run('gh', 'api', f'repos/{{owner}}/{{repo}}/commits/{sha}/check-runs'
-               '?check_name=check-plugins&filter=latest', '--jq',
-               '[.check_runs[] | select(.name == "check-plugins" and '
+               f'?check_name={quote(CHECK_NAME)}&filter=latest', '--jq',
+               f'[.check_runs[] | select(.name == "{CHECK_NAME}" and '
                f'.head_sha == "{sha}" and .app.slug == "github-actions")] '
                '| max_by(.id) | .status == "completed" and .conclusion == "success"') == 'true'
 
