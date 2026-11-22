@@ -46,7 +46,7 @@ class GitHubTests(unittest.TestCase):
                               check=True, capture_output=True, text=True).stdout.strip()
 
     def check(self, **changes):
-        return dict(id=1, name='check-plugins', head_sha='abc',
+        return dict(id=1, name='Validate plugins and run smoke tests', head_sha='abc',
                     app={'slug': 'github-actions'}, status='completed',
                     conclusion='success', **changes)
 
@@ -56,13 +56,16 @@ class GitHubTests(unittest.TestCase):
         self.run.assert_called_once()
         self.assertEqual(self.run.call_args.args[:4], (
             'gh', 'api', 'repos/{owner}/{repo}/commits/abc/check-runs'
-            '?check_name=check-plugins&filter=latest', '--jq'))
+            '?check_name=Validate%20plugins%20and%20run%20smoke%20tests&filter=latest',
+            '--jq'))
 
     def test_missing_failed_pending_and_unrelated_checks(self):
         changes = [None, {'conclusion': 'failure'}, {'conclusion': 'cancelled'},
                    {'status': 'in_progress', 'conclusion': None},
-                   {'name': 'check-plugins-other'}, {'name': 'Check-plugins'},
-                   {'name': 'check-plugins\n'}, {'head_sha': 'other'},
+                   {'name': 'check-plugins'},
+                   {'name': 'Validate plugins and run smoke tests (other)'},
+                   {'name': 'validate plugins and run smoke tests'},
+                   {'name': 'Validate plugins and run smoke tests\n'}, {'head_sha': 'other'},
                    {'app': {'slug': 'other'}}]
         for change in changes:
             with self.subTest(change=change):
