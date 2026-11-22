@@ -302,7 +302,7 @@ The shared hook in `hooks/hooks.json` uses `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}
 
 ## Checking plugins
 
-To check metadata for all four manifests and both marketplaces, plus install, skill discovery and hook output for Codex, Claude Code and Copilot CLI, without logging in:
+To check metadata for all five manifests and all three marketplaces, install, skill discovery and hook output for Codex, Claude Code and Copilot CLI, and hook output for Cursor, without logging in:
 ```bash
 # Requires Python 3 with PyYAML, codex, claude, copilot, bash and jq on PATH
 scripts/check-plugins.py
@@ -310,6 +310,6 @@ scripts/check-plugins.py
 
 For a fast version-only check without the CLIs, run `python3 scripts/check-plugins.py --versions-only`. To set all four versions together, run `python3 scripts/set-version.py X.Y.Z`. The release workflow uses these after computing the next version with `git cliff --bumped-version`.
 
-The check uses throwaway Codex, Claude Code and Copilot CLI homes and removes them afterwards. Set `CODEX_BIN`, `CLAUDE_BIN` or `COPILOT_BIN` to test binaries outside `PATH`. Claude Code's no-login session lists user-invocable skills, including manual-only skills, and fires the hook before authentication fails. Copilot CLI lists all plugin skills without invocation-policy filtering. Its hook command is run directly and checked for JSON `additionalContext` containing the root `AGENTS.md`. The check does not call a model, so it cannot show that a trusted Codex session receives the rules or that Copilot injects them into a session. GitHub Actions runs the same check with Codex pinned to 0.171.0, Claude Code to 2.1.330 and Copilot CLI to 1.0.114. The Ubuntu runner includes `jq`.
+The check uses throwaway Codex, Claude Code and Copilot CLI homes and removes them afterwards. Set `CODEX_BIN`, `CLAUDE_BIN` or `COPILOT_BIN` to test binaries outside `PATH`. Claude Code's no-login session lists user-invocable skills, including manual-only skills, and fires the hook before authentication fails. Copilot CLI lists all plugin skills without invocation-policy filtering. Its hook command is run directly and checked for JSON `additionalContext` containing the root `AGENTS.md`. Cursor's hook command is checked the same way for `additional_context`. Cursor CLI refuses every command that loads a plugin until you log in, so Cursor installs and skill discovery are not checked. The check does not call a model, so it cannot show that a trusted Codex session receives the rules or that Copilot injects them into a session. GitHub Actions runs the same check with Codex pinned to 0.171.0, Claude Code to 2.1.330 and Copilot CLI to 1.0.114. The Ubuntu runner includes `jq`.
 
 A signed-in Codex session with the hook trusted was seen to receive the root `AGENTS.md` rules with no `~/.codex/AGENTS.md` present.

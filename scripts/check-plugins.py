@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Smoke-test this repo as a Codex, Claude Code and Copilot CLI plugin.
+"""Smoke-test this repo as a Codex, Claude Code, Copilot CLI and Cursor plugin.
 
 Checks, in order:
-  1. Shared metadata: both marketplaces and all four manifest versions agree.
+  1. Shared metadata: all three marketplaces and all five manifest versions agree.
   2. Codex: installs, lists the expected xlm:* skills, and its
      session-start hook prints the root AGENTS.md.
   3. Claude Code: the same three checks.
   4. Copilot CLI: installs, lists the expected skills, and its hook command
      returns the root AGENTS.md in JSON additionalContext.
+  5. Cursor: its hook command returns the root AGENTS.md in JSON
+     additional_context. Cursor CLI needs a login, so nothing is installed.
 
 Run: scripts/check-plugins.py (or --versions-only without the CLIs)
 Needs Python 3 with PyYAML, bash, jq, codex, claude and copilot. Set CODEX_BIN,
@@ -17,8 +19,8 @@ goes into a temporary home that is deleted afterwards.
 Each PASS line confirms one check. The first FAIL stops the run and names
 a likely cause.
 
-Not covered: real model sessions, the Devin plugin, and
-native Windows (issue #7).
+Not covered: real model sessions, the Devin plugin, Cursor installs and
+skill discovery, and native Windows (issue #7).
 """
 
 import argparse
@@ -65,10 +67,13 @@ def json_equal(left, right):
 
 def check_metadata(root):
     try:
-        claude_shelf = json.loads((root / '.claude-plugin/marketplace.json').read_text())
-        codex_shelf = json.loads((root / '.agents/plugins/marketplace.json').read_text())
-        shelves_match = all(json_equal(claude_shelf.get(field), codex_shelf.get(field))
-                            for field in ('name', 'plugins'))
+        claude_shelf, *shelves = [
+            json.loads((root / path).read_text())
+            for path in ('.claude-plugin/marketplace.json', '.agents/plugins/marketplace.json',
+                         '.cursor-plugin/marketplace.json')
+        ]
+        shelves_match = all(json_equal(claude_shelf.get(field), shelf.get(field))
+                            for shelf in shelves for field in ('name', 'plugins'))
     except (OSError, json.JSONDecodeError, AttributeError):
         shelves_match = False
     if not shelves_match:
@@ -77,7 +82,7 @@ def check_metadata(root):
     try:
         manifests = [json.loads((root / folder / 'plugin.json').read_text())
                      for folder in ('.devin-plugin', '.claude-plugin',
-                                    '.codex-plugin', '.github/plugin')]
+                                    '.codex-plugin', '.github/plugin', '.cursor-plugin')]
     except (OSError, json.JSONDecodeError):
         fail('plugin name differs', 'manifest metadata drift')
     if not all(isinstance(manifest, dict) for manifest in manifests):
@@ -397,27 +402,28 @@ def copilot_skills(root, copilot, work):
     print(f'PASS: Copilot CLI {len(expected)} expected plugin skills listed', flush=True)
 
 
-def copilot_hook(root, work):
-    config = json.loads((root / '.github/plugin/hooks.json').read_text())
-    command = config['hooks']['sessionStart'][0]['bash']
+def context_hook(root, work, tool, config, root_variable, field):
+    """Run a sessionStart hook command that returns AGENTS.md as JSON context."""
+    hook = json.loads((root / config).read_text())['hooks']['sessionStart'][0]
+    command = hook.get('bash') or hook.get('command')
     try:
         result = subprocess.run(
             ['bash', '-c', command], cwd=work / 'empty',
-            env={'PATH': os.environ['PATH'], 'PLUGIN_ROOT': str(root)},
+            env={'PATH': os.environ['PATH'], root_variable: str(root)},
             stdin=subprocess.DEVNULL, text=True, capture_output=True, timeout=30,
         )
     except (OSError, subprocess.TimeoutExpired) as error:
-        fail(f'Copilot CLI hook: {error}', 'hook command execution or timeout')
+        fail(f'{tool} hook: {error}', 'hook command execution or timeout')
     if result.returncode != 0:
-        fail(f'Copilot CLI hook failed: {result.stderr.strip()}', 'hook command or jq')
+        fail(f'{tool} hook failed: {result.stderr.strip()}', 'hook command or jq')
     try:
-        context = json.loads(result.stdout)['additionalContext']
+        context = json.loads(result.stdout)[field]
     except (json.JSONDecodeError, KeyError, TypeError):
-        fail('Copilot CLI hook returned no JSON additionalContext', 'hook output format')
+        fail(f'{tool} hook returned no JSON {field}', 'hook output format')
     rules = (root / 'AGENTS.md').read_text()
     if not isinstance(context, str) or not rules or rules not in context:
-        fail('Copilot CLI hook did not return root AGENTS.md', 'hook command or rules')
-    print('PASS: Copilot CLI sessionStart hook returns root AGENTS.md in additionalContext')
+        fail(f'{tool} hook did not return root AGENTS.md', 'hook command or rules')
+    print(f'PASS: {tool} sessionStart hook returns root AGENTS.md in {field}', flush=True)
 
 
 def main():
@@ -457,7 +463,12 @@ def main():
         print('\nCopilot CLI', flush=True)
         copilot_install(root, copilot, work)
         copilot_skills(root, copilot, work)
-        copilot_hook(root, work)
+        context_hook(root, work, 'Copilot CLI', '.github/plugin/hooks.json',
+                     'PLUGIN_ROOT', 'additionalContext')
+
+        print('\nCursor', flush=True)
+        context_hook(root, work, 'Cursor', '.cursor-plugin/hooks.json',
+                     'CURSOR_PLUGIN_ROOT', 'additional_context')
 
 
 if __name__ == '__main__':
