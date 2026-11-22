@@ -191,8 +191,12 @@ def list_codex_hooks(server, work):
                      and hook['eventName'] == 'sessionStart'
                      and hook['source'] == 'plugin'
                      and hook['enabled']]
-    if not session_hooks:
-        fail('xlm sessionStart hook not listed', 'Codex hook registration')
+    if len(session_hooks) != 1:
+        fail(f'expected one xlm sessionStart hook, got {len(session_hooks)}',
+             'Codex hook registration or hooks/hooks.json also loaded')
+    if not session_hooks[0]['sourcePath'].endswith('/.codex-plugin/hooks.json'):
+        fail(f"xlm sessionStart hook read from {session_hooks[0]['sourcePath']}",
+             'hooks field in .codex-plugin/plugin.json')
     if any(group['errors'] for group in groups):
         fail(f'hook errors: {groups}', 'Codex hook configuration')
     print('PASS: xlm sessionStart hook listed (trust via /hooks)')
@@ -312,12 +316,15 @@ def claude_skills(claude, work, expected):
 
 def claude_hook(root, events):
     rules = (root / 'AGENTS.md').read_text()
-    if not rules or not any(
-        event.get('type') == 'system' and event.get('subtype') == 'hook_response'
-        and event.get('hook_event') == 'SessionStart' and event.get('exit_code') == 0
-        and event.get('outcome') == 'success' and rules in event.get('stdout', '')
-        for event in events
-    ):
+    responses = [event for event in events
+                 if event.get('type') == 'system' and event.get('subtype') == 'hook_response'
+                 and event.get('hook_event') == 'SessionStart']
+    if len(responses) != 1:
+        fail(f'expected one Claude Code SessionStart hook, got {len(responses)}',
+             'hook registration or another tool\'s hook also loaded')
+    response = responses[0]
+    if (not rules or response.get('exit_code') != 0 or response.get('outcome') != 'success'
+            or rules not in response.get('stdout', '')):
         fail('Claude Code SessionStart hook did not print root AGENTS.md',
              'hook registration, command, or rules')
     print('PASS: Claude Code SessionStart hook prints root AGENTS.md')

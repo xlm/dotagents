@@ -6,7 +6,7 @@
     "name": "xlm"
   },
   "skills": "./agents/.agents/skills",
-  "hooks": "./hooks/hooks.json",
+  "hooks": "./.codex-plugin/hooks.json",
   "interface": {
     "displayName": "xlm"
   }
