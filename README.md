@@ -16,7 +16,7 @@ This repo can be used in five ways:
 |---|---|---|---|---|---|
 | What it gives | A global, always-on `AGENTS.md` for Devin, plus namespaced skills | A global, always-on `AGENTS.md` for Claude Code, plus namespaced skills | A global `AGENTS.md` for Codex via a hook you trust once, plus namespaced skills | A global, always-on `AGENTS.md` for Copilot CLI, plus skills | Only skills, symlinked into `~/.agents/skills` for any `.agents`-aware tool |
 | How skills appear | `/xlm:<skill>` (e.g. `/xlm:code-review`) | `/xlm:<skill>` (e.g. `/xlm:code-review`) | `xlm:<skill>` (e.g. `xlm:code-review`) in the skill picker | `/<skill>` (e.g. `/code-review`) | `/<skill>` (e.g. `/code-review`) |
-| `AGENTS.md` | Included: the repo root `AGENTS.md` is loaded by Devin | Included: the shared `SessionStart` hook injects the repo root `AGENTS.md` | Included: the shared `SessionStart` hook injects it once trusted via `/hooks` | Included: its own `sessionStart` hook wraps the repo root `AGENTS.md` in JSON | Not included: there is no universal global `AGENTS.md` path. Devin uses `~/.config/devin/AGENTS.md`, Claude `~/.claude/CLAUDE.md`, Cursor `~/.cursor/rules/*.mdc`, and so on. Stow only handles skills. |
+| `AGENTS.md` | Included: the repo root `AGENTS.md` is loaded by Devin | Included: its own `SessionStart` hook injects the repo root `AGENTS.md` | Included: its own `SessionStart` hook injects it once trusted via `/hooks` | Included: its own `sessionStart` hook wraps the repo root `AGENTS.md` in JSON | Not included: there is no universal global `AGENTS.md` path. Devin uses `~/.config/devin/AGENTS.md`, Claude `~/.claude/CLAUDE.md`, Cursor `~/.cursor/rules/*.mdc`, and so on. Stow only handles skills. |
 | Install (CLI) | `devin plugins install --local .` | `claude plugin marketplace add ./` then `claude plugin install xlm@dotagents` | `codex plugin marketplace add ./` then `codex plugin add xlm@dotagents` | `copilot plugin marketplace add ./` then `copilot plugin install xlm@dotagents` | `stow -t ~ -S agents` |
 | Install (Cloud) | `devin plugins install <owner>/dotagents` plus an account/enterprise/org/repo manifest. See details below | Not covered here | Not covered here | Not covered here | Not available - Stow is a local symlink |
 
@@ -83,6 +83,8 @@ Installing injects the repo's root `AGENTS.md` into every Claude Code session th
 
 A plugin installed from a local clone is read from that folder. Skill edits take effect on the next session or after `/reload-plugins`. `AGENTS.md` edits take effect on the next session, or after `/clear` or compaction, because `/reload-plugins` does not rerun the `SessionStart` hook. To try the plugin without installing it, run `claude --plugin-dir .`.
 
+The hook is `hooks/hooks.json`, which Claude Code loads by default. It prints `AGENTS.md` from `${CLAUDE_PLUGIN_ROOT}` as plain text. The manifest has no `hooks` field, because Claude Code would load that hook in addition to `hooks/hooks.json`.
+
 The manifest sets `"agents": []`. Without it Claude Code treats the stow package's `agents/` folder as its default subagent folder and registers every rule and skill doc as a subagent.
 
 ## Codex plugin
@@ -111,6 +113,8 @@ codex plugin marketplace remove dotagents
 
 The prompt lists implicitly invocable skills. Codex reads `policy.allow_implicit_invocation` from each skill's `agents/openai.yaml`, not Claude's `disable-model-invocation` frontmatter. Skills with that policy set to `false` remain available for explicit invocation but are absent from the prompt's skill list.
 
+The manifest's `hooks` field points at `.codex-plugin/hooks.json`, which replaces Codex's default `hooks/hooks.json`. The hook prints `AGENTS.md` from `${PLUGIN_ROOT}` as plain text.
+
 Open `/hooks` in a Codex session and trust the plugin's session-start hook once. Newly installed plugin hooks are untrusted, so installing alone does not inject rules. Start a new session after trusting it. Codex tracks both the hook command and the installed plugin bundle, so updating even `AGENTS.md` alone requires renewed trust.
 
 Codex installs are cached copies in `$CODEX_HOME/plugins/cache/`, even for local clones, so follow [Deploying changes](#deploying-changes) after editing or pulling updates.
@@ -138,7 +142,7 @@ copilot plugin uninstall xlm@dotagents
 copilot plugin marketplace remove dotagents
 ```
 
-The manifest cannot reuse the shared `hooks/hooks.json`. That hook prints `AGENTS.md` as raw text, which Copilot ignores. Copilot's `sessionStart` only injects rules from a JSON `additionalContext` object, so the manifest points at its own hook in `.github/plugin/hooks.json` that wraps the output with `jq`. Copilot ignores a `hooks` object inlined in the manifest. `jq` must be on `PATH`.
+Copilot's `sessionStart` ignores plain text and only injects rules from a JSON `additionalContext` object, so the manifest points at its own hook in `.github/plugin/hooks.json` that wraps `AGENTS.md` from `${PLUGIN_ROOT}` with `jq`. Copilot ignores a `hooks` object inlined in the manifest. `jq` must be on `PATH`.
 
 Skills appear unnamespaced under "Plugin skills" in `copilot skill list`, e.g. `/code-review`. A same-named personal skill, such as the stow package's at `~/.agents/skills`, wins the collision and the plugin copy is not listed.
 
@@ -263,19 +267,20 @@ If you are using [stow](#stow-package), you can directly update the repo. New se
 
 ## Repo layout
 
-Each tool reads its own manifest and, where it uses one, its own marketplace. The rules, skills and hook are shared.
+Each tool reads its own manifest and, where it uses one, its own marketplace. The rules and skills are shared. Each tool with a hook has its own.
 
 | Path | Purpose | Read by |
 |---|---|---|
-| `AGENTS.md` | Global rules | Devin directly, Claude Code and Codex via the hook, Copilot CLI via its own hook |
+| `AGENTS.md` | Global rules | Devin directly, Claude Code, Codex and Copilot CLI via their hooks |
 | `agents/` | Stow package. `stow -t ~ -S agents` links `~/.agents` to `agents/.agents/` | Stow |
 | `agents/.agents/skills/` | Shared skills | Every plugin, and Stow users |
 | `agents/.agents/rules/` | Shared rule docs, listed in the `AGENTS.md` index. Skills reference them as `../../rules/<doc>.md` | Agents, on demand |
-| `hooks/hooks.json` | Shared session-start hook that prints the root `AGENTS.md` | Claude Code, Codex |
+| `hooks/hooks.json` | Claude Code `SessionStart` hook | Claude Code |
 | `.devin-plugin/plugin.json` | Devin manifest | Devin |
 | `.claude-plugin/plugin.json` | Claude Code manifest | Claude Code, and Codex as a fallback |
 | `.claude-plugin/marketplace.json` | Claude Code marketplace `dotagents` | Claude Code, Copilot CLI, and Codex as a fallback |
 | `.codex-plugin/plugin.json` | Codex manifest | Codex |
+| `.codex-plugin/hooks.json` | Codex `SessionStart` hook | Codex |
 | `.agents/plugins/marketplace.json` | Codex marketplace `dotagents` | Codex |
 | `.github/plugin/plugin.json` | Copilot CLI manifest | Copilot CLI |
 | `.github/plugin/hooks.json` | Copilot CLI `sessionStart` hook | Copilot CLI |
@@ -296,9 +301,19 @@ Things that are easy to get wrong:
 - **Root `.agents/` is not `agents/.agents/`.** The root `.agents/` holds only the Codex marketplace, and any other root `.agents/` state is gitignored. Skills and rules go in `agents/.agents/`. Anything else under the root `.agents/` is not exposed by any plugin.
 - **Shared metadata is repeated.** `name`, `version`, `description` and `author` appear in all four manifests, and the marketplace name and plugin list appear in both marketplaces. Change them together. `scripts/check-plugins.py` fails if they differ.
 
-### Shared hook
+### Hooks
 
-The shared hook in `hooks/hooks.json` uses `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}`: `PLUGIN_ROOT` is the open Agent Plugins name (set by Codex), and Claude Code only sets `CLAUDE_PLUGIN_ROOT`. Tools such as Cursor or Gemini need their own manifest before any hook runs. Copilot CLI keeps its own hook in `.github/plugin/hooks.json` because it needs a JSON `additionalContext` object, not raw stdout.
+Each tool has its own session-start hook. Each hook reads only that tool's plugin root and prints the root `AGENTS.md` in the shape the tool reads.
+
+| Tool | Hook | Root | Output | Needs `jq` |
+|---|---|---|---|---|
+| Claude Code | `hooks/hooks.json` | `CLAUDE_PLUGIN_ROOT` | Plain text | No |
+| Codex | `.codex-plugin/hooks.json` | `PLUGIN_ROOT` | Plain text | No |
+| Copilot CLI | `.github/plugin/hooks.json` | `PLUGIN_ROOT` | JSON `additionalContext` | Yes |
+
+The tool sets the root variable for the hook process only. A hook also inherits the environment of the shell that started the tool. Claude Code and Codex replace an inherited value of their own root variable, so a stray export cannot point their hooks at another `AGENTS.md`. Copilot's handling of an inherited `PLUGIN_ROOT` is untested.
+
+Claude Code always loads `hooks/hooks.json` and adds any manifest `hooks` to it, so `hooks/hooks.json` belongs to Claude Code. Codex and Copilot CLI name their own files in their manifests. Copilot's plugin reference names `PLUGIN_ROOT` for bundled MCP and LSP servers but not for hooks. A signed-in Copilot session showed it is set for hooks too. Tools such as Gemini need their own manifest and hook.
 
 ## Checking plugins
 
@@ -310,6 +325,6 @@ scripts/check-plugins.py
 
 For a fast version-only check without the CLIs, run `python3 scripts/check-plugins.py --versions-only`. To set all four versions together, run `python3 scripts/set-version.py X.Y.Z`. The release workflow uses these after computing the next version with `git cliff --bumped-version`.
 
-The check uses throwaway Codex, Claude Code and Copilot CLI homes and removes them afterwards. Set `CODEX_BIN`, `CLAUDE_BIN` or `COPILOT_BIN` to test binaries outside `PATH`. Claude Code's no-login session lists user-invocable skills, including manual-only skills, and fires the hook before authentication fails. Copilot CLI lists all plugin skills without invocation-policy filtering. Its hook command is run directly and checked for JSON `additionalContext` containing the root `AGENTS.md`. The check does not call a model, so it cannot show that a trusted Codex session receives the rules or that Copilot injects them into a session. GitHub Actions runs the same check with Codex pinned to 0.171.0, Claude Code to 2.1.330 and Copilot CLI to 1.0.114. The Ubuntu runner includes `jq`.
+The check uses throwaway Codex, Claude Code and Copilot CLI homes and removes them afterwards. Set `CODEX_BIN`, `CLAUDE_BIN` or `COPILOT_BIN` to test binaries outside `PATH`. Claude Code's no-login session lists user-invocable skills, including manual-only skills, and fires the hook before authentication fails. Copilot CLI lists all plugin skills without invocation-policy filtering. Its hook command is run directly and checked for JSON `additionalContext` containing the root `AGENTS.md`. For Claude Code and Codex, the check also fails unless exactly one session-start hook loads, and for Codex it must come from `.codex-plugin/hooks.json`. The check does not call a model, so it cannot show that a trusted Codex session receives the rules or that Copilot injects them into a session. GitHub Actions runs the same check with Codex pinned to 0.171.0, Claude Code to 2.1.330 and Copilot CLI to 1.0.114. The Ubuntu runner includes `jq`.
 
-A signed-in Codex session with the hook trusted was seen to receive the root `AGENTS.md` rules with no `~/.codex/AGENTS.md` present.
+A signed-in Codex session with the earlier shared hook trusted was seen to receive the root `AGENTS.md` rules with no `~/.codex/AGENTS.md` present. With the current hook, `codex exec --dangerously-bypass-hook-trust` without a login recorded the root `AGENTS.md` as session context once, also with a stray `PLUGIN_ROOT` exported.
