@@ -9,6 +9,8 @@ import tempfile
 import unittest
 from unittest import mock
 
+import yaml
+
 from plugin_versions import MANIFESTS, check_versions
 import release
 
@@ -49,6 +51,11 @@ class GitHubTests(unittest.TestCase):
         return dict(id=1, name='Validate plugins and run smoke tests', head_sha='abc',
                     app={'slug': 'github-actions'}, status='completed',
                     conclusion='success', **changes)
+
+    def test_check_name_matches_workflow(self):
+        workflow = release.ROOT / '.github/workflows/check-plugins.yml'
+        job = yaml.safe_load(workflow.read_text())['jobs']['check-plugins']
+        self.assertEqual(job['name'], release.CHECK_NAME)
 
     def test_successful_check(self):
         self.runs = [self.check()]
