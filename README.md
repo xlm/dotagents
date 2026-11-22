@@ -15,15 +15,15 @@ This repo can be used in six ways:
 
 | | Devin plugin | Claude Code plugin | Codex plugin | Copilot CLI plugin | Cursor plugin | Stow package |
 |---|---|---|---|---|---|---|
-| What it gives | A global, always-on `AGENTS.md` for Devin, plus namespaced skills | A global, always-on `AGENTS.md` for Claude Code, plus namespaced skills | A global `AGENTS.md` for Codex via a hook you trust once, plus namespaced skills | A global, always-on `AGENTS.md` for Copilot CLI, plus skills | A global `AGENTS.md` for Cursor, except in Cloud Agents, plus skills. Tested in Cursor CLI only | Only skills, symlinked into `~/.agents/skills` for any `.agents`-aware tool |
-| How skills appear | `/xlm:<skill>` (e.g. `/xlm:code-review`) | `/xlm:<skill>` (e.g. `/xlm:code-review`) | `xlm:<skill>` (e.g. `xlm:code-review`) in the skill picker | `/<skill>` (e.g. `/code-review`) | Not yet checked | `/<skill>` (e.g. `/code-review`) |
+| What it gives | A global, always-on `AGENTS.md` for Devin, plus namespaced skills | A global, always-on `AGENTS.md` for Claude Code, plus namespaced skills | A global `AGENTS.md` for Codex via a hook you trust once, plus namespaced skills | A global, always-on `AGENTS.md` for Copilot CLI, plus skills | A global `AGENTS.md` for Cursor outside Cloud Agents, plus skills | Only skills, symlinked into `~/.agents/skills` for any `.agents`-aware tool |
+| How skills appear | `/xlm:<skill>` (e.g. `/xlm:code-review`) | `/xlm:<skill>` (e.g. `/xlm:code-review`) | `xlm:<skill>` (e.g. `xlm:code-review`) in the skill picker | `/<skill>` (e.g. `/code-review`) | `/<skill>` (e.g. `/code-review`) in Cursor CLI. The IDE is unchecked | `/<skill>` (e.g. `/code-review`) |
 | `AGENTS.md` | Included: the repo root `AGENTS.md` is loaded by Devin | Included: the shared `SessionStart` hook injects the repo root `AGENTS.md` | Included: the shared `SessionStart` hook injects it once trusted via `/hooks` | Included: its own `sessionStart` hook wraps the repo root `AGENTS.md` in JSON | Included outside Cloud Agents: the shared `SessionStart` hook injects the repo root `AGENTS.md` | Not included: there is no universal global `AGENTS.md` path. Devin uses `~/.config/devin/AGENTS.md`, Claude `~/.claude/CLAUDE.md`, Cursor `~/.cursor/rules/*.mdc`, and so on. Stow only handles skills. |
 | Install (CLI) | `devin plugins install --local .` | `claude plugin marketplace add ./` then `claude plugin install xlm@dotagents` | `codex plugin marketplace add ./` then `codex plugin add xlm@dotagents` | `copilot plugin marketplace add ./` then `copilot plugin install xlm@dotagents` | `agent --plugin-dir .` for one session | `stow -t ~ -S agents` |
 | Install (Cloud) | `devin plugins install <owner>/dotagents` plus an account/enterprise/org/repo manifest. See details below | Not covered here | Not covered here | Not covered here | Not covered here | Not available - Stow is a local symlink |
 
-If your tool has a plugin here, the plugin is the simplest path: one install, global rules, and skills. If you want unnamespaced skills or use another `.agents`-aware tool, use Stow. Do not combine a plugin and Stow in the same tool unless you are happy seeing each skill twice (`/code-review` and `/xlm:code-review`).
+If your tool has a plugin here, the plugin is the simplest path: one install, global rules, and skills. If you want unnamespaced skills or use another `.agents`-aware tool, use Stow. Do not combine a plugin and Stow in the same tool. Devin, Claude Code and Codex show each skill twice (`/code-review` and `/xlm:code-review`). Copilot CLI hides the plugin copy behind the Stow one, and Cursor's docs suggest it lists both without a prefix.
 
-Inside this repo, Claude Code, Codex, Copilot CLI and Cursor also load `AGENTS.md` as project instructions, so the rules appear twice here and nowhere else.
+Inside this repo, Claude Code, Codex and Copilot CLI also load `AGENTS.md` as project instructions, so the rules appear twice here and nowhere else. Cursor's docs say it does the same.
 
 ## Devin plugin
 
@@ -53,11 +53,13 @@ Local plugins are linked directly to the source folder, so edits to `AGENTS.md` 
 
 Install plugin via the Devin web app and set appropriate scopes. It is recommended to use the GitHub repo. This will propagate to Devin CLI too.
 
+A Devin cloud session with the plugin installed from the GitHub repo was seen to load the root `AGENTS.md` as an always-on rule and offer the plugin skills.
+
 See https://docs.devin.ai/product-guides/plugins
 
 ## Claude Code plugin
 
-The manifest is `.claude-plugin/plugin.json`. `.claude-plugin/marketplace.json` makes the repo a one-plugin marketplace named `dotagents`, which is how Claude Code installs plugins.
+Tested with Claude Code 2.1.330. The manifest is `.claude-plugin/plugin.json`. `.claude-plugin/marketplace.json` makes the repo a one-plugin marketplace named `dotagents`, which is how Claude Code installs plugins.
 
 From the repo root:
 ```bash
@@ -116,6 +118,8 @@ Open `/hooks` in a Codex session and trust the plugin's session-start hook once.
 
 Codex installs are cached copies in `$CODEX_HOME/plugins/cache/`, even for local clones, so follow [Deploying changes](#deploying-changes) after editing or pulling updates.
 
+A signed-in Codex session with the hook trusted was seen to receive the root `AGENTS.md` rules with no `~/.codex/AGENTS.md` present. That run used the earlier plain-text hook. The JSON hook was seen injecting the rules in `codex exec` with hook trust bypassed.
+
 ## Copilot CLI plugin
 
 Tested with Copilot CLI 1.0.114. The manifest is `.github/plugin/plugin.json`, the legacy Copilot format, with skills at `agents/.agents/skills`. Copilot reads `.claude-plugin/marketplace.json`, so the repo is also a one-plugin `dotagents` marketplace for Copilot and no separate marketplace file is needed.
@@ -151,13 +155,13 @@ A signed-in Copilot CLI 1.0.114 session was seen to receive the root `AGENTS.md`
 
 ## Cursor plugin
 
-Tested with Cursor CLI (`agent`) 2026.11.22, signed in on a free plan. `agent --plugin-dir .` and a local copy in `~/.cursor/plugins/local/xlm` both gave a session the root `AGENTS.md` and listed the skills. The agent then followed the path in `AGENTS.md` to read an on-demand rule doc. The Cursor IDE, Cloud Agents and installs from GitHub are untested, see [#13](https://github.com/xlm/dotagents/issues/13) and [#14](https://github.com/xlm/dotagents/issues/14). The rest of this section follows the [Cursor plugin docs](https://cursor.com/docs/plugins.md).
+Tested with Cursor CLI (`agent`) 2026.11.22. The Cursor IDE, Cloud Agents and installs from GitHub are untested, see [#13](https://github.com/xlm/dotagents/issues/13) and [#14](https://github.com/xlm/dotagents/issues/14). The rest of this section follows the [Cursor plugin docs](https://cursor.com/docs/plugins.md).
 
 The manifest is `.cursor-plugin/plugin.json`, with skills at `agents/.agents/skills` and `"agents": []` for the same reason as the [Claude Code plugin](#claude-code-plugin). `.cursor-plugin/marketplace.json` makes the repo a one-plugin marketplace named `dotagents`, which the Cursor IDE needs to import it from GitHub.
 
 From the repo root:
 ```bash
-# Install via git repo in the Cursor IDE
+# Install via git repo in the Cursor IDE (untested)
 # Customize > import xlm/dotagents with "From GitHub Repository", then install xlm
 
 # Or install via git repo in Cursor CLI, then install xlm with /plugin in a session
@@ -172,7 +176,7 @@ rsync -a --delete --exclude .git ./ ~/.cursor/plugins/local/xlm/
 # Then restart Cursor or run Developer: Reload Window
 
 # Verify
-# Customize lists xlm with its skills under Agent Decides
+# Cursor IDE (untested): Customize lists xlm with its skills under Agent Decides
 agent plugin marketplace list
 # Should list dotagents if installed via git repo
 
@@ -181,14 +185,16 @@ agent plugin marketplace remove dotagents
 rm -rf ~/.cursor/plugins/local/xlm
 ```
 
-The manifest has no `hooks` field, so Cursor reads the [shared hook](#shared-hook) in `hooks/hooks.json` in its Claude Code format. The hook falls back to `CURSOR_PLUGIN_ROOT`, the variable the Cursor docs give plugin hooks, to find the root `AGENTS.md`. Cursor CLI 2026.11.22 also set `CLAUDE_PLUGIN_ROOT` to the same directory. Cursor CLI 2026.11.22 ignored the hook's output when it was plain text and injected it once it was JSON. `jq` must be on `PATH`. Hooks have these gaps, according to the Cursor docs:
+The manifest has no `hooks` field, so Cursor reads the [shared hook](#shared-hook) in `hooks/hooks.json` in its Claude Code format. The hook falls back to `CURSOR_PLUGIN_ROOT`, the variable the Cursor docs give plugin hooks, to find the root `AGENTS.md`. Cursor CLI 2026.11.22 also set `CLAUDE_PLUGIN_ROOT` to the same directory, and the hook uses that one because it comes earlier in the fallback. That CLI ignored the hook's output when it was plain text and injected it once it was JSON. `jq` must be on `PATH`. Hooks have these gaps, according to the Cursor docs:
 
 - Cursor runs `sessionStart` fire-and-forget, so the agent loop does not wait for the hook.
 - Cloud Agents do not run `sessionStart`, so a Cloud Agent gets the skills but not the rules ([#14](https://github.com/xlm/dotagents/issues/14)).
 
 Plugin rules (`.mdc` files with `alwaysApply: true`) are not used, because Cursor CLI 2026.11.22 ignored them. It skipped them both from the manifest's `rules` path and from the default `rules/` folder, while the same files worked as project rules in `.cursor/rules/`.
 
-Cursor also loads skills from `~/.agents/skills`, so the plugin and Stow together show each skill twice. Cursor CLI lists plugin skills without an `xlm:` prefix.
+In Cursor CLI, skills appear without an `xlm:` prefix, e.g. `/code-review`. The Cursor docs say Cursor also loads skills from `~/.agents/skills`, so the plugin and Stow together would show each skill twice.
+
+A signed-in Cursor CLI 2026.11.22 session on a free plan was seen to receive the root `AGENTS.md` rules from the shared hook and list the skills, with `agent --plugin-dir`. So did a test copy whose hook read only `CURSOR_PLUGIN_ROOT`. An earlier run with a Cursor-only hook also worked from a local copy in `~/.cursor/plugins/local/xlm`, and the agent followed the path in `AGENTS.md` to read an on-demand rule doc.
 
 ## Stow package
 
@@ -232,7 +238,7 @@ stow -t ~ -D agents
 
 All five plugin manifests carry the same semver version. After each push to `main` passes Check plugins, [release.yml](.github/workflows/release.yml) bumps it automatically with git-cliff, commits the manifests, tags the commit and publishes a GitHub release. While on 0.x, breaking changes or `feat:` commits bump minor, and other commit types bump patch. Moving to 1.0.0 is a manual decision. Release commits do not trigger another release.
 
-The plugin list command in all four CLIs shows the installed version (`devin plugins list`, or `claude`, `codex` and `copilot plugin list`). Where Cursor shows it has not been checked. Compare it with the [latest GitHub release](https://github.com/xlm/dotagents/releases/latest) to check whether you are up to date. Merge PRs with rebase merge so conventional commit types survive and determine the bump.
+The plugin list command in all four CLIs shows the installed version (`devin plugins list`, or `claude`, `codex` and `copilot plugin list`). Where Cursor shows it has not been checked ([#13](https://github.com/xlm/dotagents/issues/13)). Compare it with the [latest GitHub release](https://github.com/xlm/dotagents/releases/latest) to check whether you are up to date. Merge PRs with rebase merge so conventional commit types survive and determine the bump.
 
 Pull `main` before branching or pushing to it. The bot adds a `release: X.Y.Z` commit after each release.
 Never force-push `main`. Rewriting a `release:` commit can leave its tag off main and block releases until the tag is fixed by hand.
@@ -263,6 +269,8 @@ claude plugin update xlm@dotagents
 ```
 
 Claude Code can do this itself at session start, but auto-update is off by default for third-party marketplaces. Turn it on under `/plugin` > Marketplaces > dotagents. See [Claude Code plugin docs](https://code.claude.com/docs/en/discover-plugins.md).
+
+Before deploying plugin changes, run `scripts/check-plugins.py`.
 
 #### Codex
 
@@ -308,7 +316,9 @@ If you have installed the Cursor plugin from the git repo in Cursor CLI, re-inde
 agent plugin marketplace update dotagents
 ```
 
-How a GitHub import in the Cursor IDE refreshes has not been checked. The docs describe a **Refresh** button and Auto Refresh only for team marketplaces.
+How a GitHub import in the Cursor IDE refreshes has not been checked ([#13](https://github.com/xlm/dotagents/issues/13)). The docs describe a **Refresh** button and Auto Refresh only for team marketplaces.
+
+Before deploying plugin changes, run `scripts/check-plugins.py`.
 
 #### Stow
 
@@ -334,7 +344,7 @@ Each tool reads its own manifest and, where it uses one, its own marketplace. Th
 | `.github/plugin/hooks.json` | Copilot CLI `sessionStart` hook | Copilot CLI |
 | `.cursor-plugin/plugin.json` | Cursor manifest | Cursor |
 | `.cursor-plugin/marketplace.json` | Cursor marketplace `dotagents` | Cursor, and Codex as a fallback |
-| `scripts/check-plugins.py` | Shared metadata plus Codex, Claude Code and Copilot CLI install, skill and hook checks, and the Cursor manifest's hook, also run by `.github/workflows/check-plugins.yml` | You and GitHub Actions |
+| `scripts/check-plugins.py` | Shared metadata plus Codex, Claude Code and Copilot CLI install, skill and hook checks, and that Cursor's shared hook finds the root through `CURSOR_PLUGIN_ROOT`, also run by `.github/workflows/check-plugins.yml` | You and GitHub Actions |
 
 Where each tool looks:
 
@@ -354,11 +364,11 @@ Things that are easy to get wrong:
 
 ### Shared hook
 
-The shared hook in `hooks/hooks.json` uses `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-${CURSOR_PLUGIN_ROOT}}}`, the documented plugin root of each tool: `PLUGIN_ROOT` is the open Agent Plugins name (set by Codex), then Claude Code's and Cursor's own names. It prints `{"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": ...}}` with `jq`, the shape Claude Code and Codex document for adding session context. Cursor ignores plain-text output, so the hook cannot simply `cat` the file. `jq` must be on `PATH`. Tools such as Gemini need their own manifest before any hook runs. Copilot CLI keeps its own hook in `.github/plugin/hooks.json` because it reads only a top-level `additionalContext`. Adding that field to the shared output is not an option, because Codex 0.171.0 then fails the hook.
+The shared hook in `hooks/hooks.json` uses `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-${CURSOR_PLUGIN_ROOT}}}`, the documented plugin root of each tool, and takes the first one that is set. `PLUGIN_ROOT` is the open Agent Plugins name, and Codex 0.171.0 sets it along with `CLAUDE_PLUGIN_ROOT`. Then come Claude Code's and Cursor's own names. It prints `{"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": ...}}` with `jq`, the shape Claude Code and Codex document for adding session context. Cursor ignores plain-text output, so the hook cannot simply `cat` the file. `jq` must be on `PATH`. Tools such as Gemini need their own manifest before any hook runs. Copilot CLI keeps its own hook in `.github/plugin/hooks.json` because it reads only a top-level `additionalContext`. That hook uses `PLUGIN_ROOT`, the name Copilot's plugin reference uses, with `CLAUDE_PLUGIN_ROOT` and `COPILOT_PLUGIN_ROOT` as aliases. `scripts/check-plugins.py` sets `PLUGIN_ROOT` itself when it runs that hook, so only the signed-in Copilot CLI session shows that Copilot sets it. Adding that field to the shared output is not an option, because Codex 0.171.0 then fails the hook.
 
 ## Checking plugins
 
-To check metadata for all five manifests and all three marketplaces, install, skill discovery and hook output for Codex, Claude Code and Copilot CLI, and that Cursor uses the shared hook, without logging in:
+To check metadata for all five manifests and all three marketplaces, install, skill discovery and hook output for Codex, Claude Code and Copilot CLI, and that Cursor's shared hook finds the root through `CURSOR_PLUGIN_ROOT`, without logging in:
 ```bash
 # Requires Python 3 with PyYAML, codex, claude, copilot, bash and jq on PATH
 scripts/check-plugins.py
@@ -367,5 +377,3 @@ scripts/check-plugins.py
 For a fast version-only check without the CLIs, run `python3 scripts/check-plugins.py --versions-only`. To set all five versions together, run `python3 scripts/set-version.py X.Y.Z`. The release workflow uses these after computing the next version with `git cliff --bumped-version`.
 
 The check uses throwaway Codex, Claude Code and Copilot CLI homes and removes them afterwards. Set `CODEX_BIN`, `CLAUDE_BIN` or `COPILOT_BIN` to test binaries outside `PATH`. Claude Code's no-login session lists user-invocable skills, including manual-only skills, and fires the hook before authentication fails. The Codex and Claude Code hook checks parse the JSON and look for the root `AGENTS.md` in `hookSpecificOutput.additionalContext`. Copilot CLI lists all plugin skills without invocation-policy filtering. Its hook command is run directly and checked for JSON `additionalContext` containing the root `AGENTS.md`. For Cursor, the check confirms the manifest has no hook of its own. Cursor CLI refuses every command that loads a plugin until you log in, so the check does not cover Cursor installs or skill discovery. The check does not call a model, so it cannot show that a trusted Codex session receives the rules or that Copilot injects them into a session. GitHub Actions runs the same check with Codex pinned to 0.171.0, Claude Code to 2.1.330 and Copilot CLI to 1.0.114. The Ubuntu runner includes `jq`.
-
-A signed-in Codex session with the hook trusted was seen to receive the root `AGENTS.md` rules with no `~/.codex/AGENTS.md` present.
