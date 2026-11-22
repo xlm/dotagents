@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  checks: read
 
 concurrency:
   group: release
@@ -23,46 +24,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: main
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: python3 -m pip install git-cliff==2.14.2 PyYAML==6.0.3
-      - name: Prepare release
-        id: prepare
+      - name: Release current main
         env:
-          CHECKED_SHA: ${{ github.event.workflow_run.head_sha }}
-        run: |
-          git fetch origin main --tags
-          if [ "$(git rev-parse origin/main)" != "$CHECKED_SHA" ]; then
-            echo 'Main has moved. Leave the release to its successful check run.'
-            exit 0
-          fi
-          latest_tag=$(git describe --tags --abbrev=0 --match '[0-9]*.[0-9]*.[0-9]*')
-          if [ "$(git rev-list --count "$latest_tag"..HEAD)" = 0 ]; then
-            echo 'No commits since the last release.'
-            exit 0
-          fi
-          version=$(git cliff --bumped-version)
-          git cliff --unreleased --bump --strip all > release-notes.md
-          python3 scripts/set-version.py "$version"
-          python3 scripts/check-plugins.py --versions-only
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo 'release=true' >> "$GITHUB_OUTPUT"
-      - name: Commit, tag, and publish
-        if: steps.prepare.outputs.release == 'true'
-        env:
-          VERSION: ${{ steps.prepare.outputs.version }}
           GH_TOKEN: ${{ github.token }}
-          GIT_AUTHOR_NAME: github-actions[bot]
-          GIT_AUTHOR_EMAIL: 41898283+github-actions[bot]@users.noreply.github.com
-          GIT_COMMITTER_NAME: github-actions[bot]
-          GIT_COMMITTER_EMAIL: 41898283+github-actions[bot]@users.noreply.github.com
-        run: |
-          git add .devin-plugin/plugin.json .claude-plugin/plugin.json \
-            .codex-plugin/plugin.json .github/plugin/plugin.json
-          git commit -m "release: $VERSION"
-          git tag "$VERSION"
-          git push --atomic origin HEAD:main "$VERSION"
-          gh release create "$VERSION" --notes-file release-notes.md
+        run: python3 scripts/release.py
