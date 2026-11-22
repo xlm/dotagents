@@ -1,0 +1,5 @@
+interface:
+  display_name: "Automate Releases"
+  short_description: "Set up git-cliff semver releases on GitHub"
+policy:
+  allow_implicit_invocation: false
