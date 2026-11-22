@@ -17,7 +17,7 @@ This repo can be used in five ways:
 | What it gives | A global, always-on `AGENTS.md` for Devin, plus namespaced skills | A global, always-on `AGENTS.md` for Claude Code, plus namespaced skills | A global `AGENTS.md` for Codex via a hook you trust once, plus namespaced skills | A global, always-on `AGENTS.md` for Copilot CLI, plus skills | Only skills, symlinked into `~/.agents/skills` for any `.agents`-aware tool |
 | How skills appear | `/xlm:<skill>` (e.g. `/xlm:code-review`) | `/xlm:<skill>` (e.g. `/xlm:code-review`) | `xlm:<skill>` (e.g. `xlm:code-review`) in the skill picker | `/<skill>` (e.g. `/code-review`) | `/<skill>` (e.g. `/code-review`) |
 | `AGENTS.md` | Included: the repo root `AGENTS.md` is loaded by Devin | Included: the shared `SessionStart` hook injects the repo root `AGENTS.md` | Included: the shared `SessionStart` hook injects it once trusted via `/hooks` | Included: its own `sessionStart` hook wraps the repo root `AGENTS.md` in JSON | Not included: there is no universal global `AGENTS.md` path. Devin uses `~/.config/devin/AGENTS.md`, Claude `~/.claude/CLAUDE.md`, Cursor `~/.cursor/rules/*.mdc`, and so on. Stow only handles skills. |
-| Install (CLI) | `devin plugins install .` | `claude plugin marketplace add ./` then `claude plugin install xlm@dotagents` | `codex plugin marketplace add ./` then `codex plugin add xlm@dotagents` | `copilot plugin marketplace add ./` then `copilot plugin install xlm@dotagents` | `stow -t ~ -S agents` |
+| Install (CLI) | `devin plugins install --local .` | `claude plugin marketplace add ./` then `claude plugin install xlm@dotagents` | `codex plugin marketplace add ./` then `codex plugin add xlm@dotagents` | `copilot plugin marketplace add ./` then `copilot plugin install xlm@dotagents` | `stow -t ~ -S agents` |
 | Install (Cloud) | `devin plugins install <owner>/dotagents` plus an account/enterprise/org/repo manifest. See details below | Not covered here | Not covered here | Not covered here | Not available - Stow is a local symlink |
 
 If your tool has a plugin here, the plugin is the simplest path: one install, global rules, and skills. If you want unnamespaced skills or use another `.agents`-aware tool, use Stow. Do not combine a plugin and Stow in the same tool unless you are happy seeing each skill twice (`/code-review` and `/xlm:code-review`).
@@ -31,7 +31,7 @@ Inside this repo, Claude Code, Codex and Copilot CLI also load `AGENTS.md` as pr
 From the repo root:
 ```bash
 # Install via local clone
-devin plugins install .
+devin plugins install --local .
 
 # Or install via git repo
 devin plugins install xlm/dotagents
@@ -84,8 +84,6 @@ Installing injects the repo's root `AGENTS.md` into every Claude Code session th
 A plugin installed from a local clone is read from that folder. Skill edits take effect on the next session or after `/reload-plugins`. `AGENTS.md` edits take effect on the next session, or after `/clear` or compaction, because `/reload-plugins` does not rerun the `SessionStart` hook. To try the plugin without installing it, run `claude --plugin-dir .`.
 
 The manifest sets `"agents": []`. Without it Claude Code treats the stow package's `agents/` folder as its default subagent folder and registers every rule and skill doc as a subagent.
-
-The manifest sets no `version`. Claude Code then versions a git install by commit, so the [update commands](#deploying-changes) pick up every push. With a pinned version it keeps the cached copy until the version changes.
 
 ## Codex plugin
 
@@ -146,8 +144,6 @@ Skills appear unnamespaced under "Plugin skills" in `copilot skill list`, e.g. `
 
 A plugin installed from a local clone is loaded live from that folder, so edits take effect on the next session. `copilot plugin install <path>` instead copies the plugin under `~/.copilot/installed-plugins/` and is deprecated in favour of the marketplace route.
 
-The manifest sets no `version`. `copilot plugin update` refreshes the installed copy without one.
-
 Uninstalling a live plugin only disables it, because nothing was copied. Removing the marketplace completes removal.
 
 A signed-in Copilot CLI 1.0.114 session was seen to receive the root `AGENTS.md` rules from both a local clone and a git install.
@@ -190,6 +186,12 @@ npx skills update
 stow -t ~ -D agents
 ```
 
+### Versioning
+
+All four plugin manifests carry the same semver version. After each push to `main` passes Check plugins, [release.yml](.github/workflows/release.yml) bumps it automatically with git-cliff, commits the manifests, tags the commit and publishes a GitHub release. While on 0.x, breaking changes or `feat:` commits bump minor, and other commit types bump patch. Moving to 1.0.0 is a manual decision. Release commits do not trigger another release.
+
+The plugin list command in all four CLIs shows the installed version (`devin plugins list`, or `claude`, `codex` and `copilot plugin list`). Compare it with the [latest GitHub release](https://github.com/xlm/dotagents/releases/latest) to check whether you are up to date. Merge PRs with rebase merge so conventional commit types survive and determine the bump.
+
 ### Deploying changes
 
 #### Devin
@@ -201,6 +203,8 @@ If you have installed via [Cloud](#cloud) then new Cloud sessions will automatic
 devin plugins update xlm
 ```
 
+Starting a Devin CLI session does not refresh an installed git plugin. In 3000.14.30821 a session start left a local git install on its old commit, and only installed newly required organization plugins.
+
 #### Claude Code
 
 If you have installed the [Claude Code plugin](#claude-code-plugin) from a local clone, you can directly update the repo. New sessions will pick up new rules/skills immediately.
@@ -210,6 +214,8 @@ If you have installed the Claude Code plugin from the git repo, refresh it after
 claude plugin marketplace update dotagents
 claude plugin update xlm@dotagents
 ```
+
+Claude Code can do this itself at session start, but auto-update is off by default for third-party marketplaces. Turn it on under `/plugin` > Marketplaces > dotagents. See [Claude Code plugin docs](https://code.claude.com/docs/en/discover-plugins.md).
 
 #### Codex
 
@@ -226,7 +232,7 @@ codex plugin marketplace upgrade dotagents
 
 The upgrade command refreshes installed plugins too. It is only for git marketplaces, not local clones. A reinstall is also possible after refreshing the git marketplace. Reinstalling without refreshing can reuse the old marketplace snapshot.
 
-The Codex manifest needs no `version`. In 0.171.0, git marketplace upgrade picked up new commits both without a version and with an unchanged explicit version. Unlike Claude Code, a fixed version did not block the refresh. Without a version the cache directory ends in `local`, and with a version it ends in that version.
+The Codex docs describe no automatic refresh. The 0.171.0 config schema does have `marketplaces.<name>.auto_update`, default `false`, but this was not tested.
 
 Start a new Codex session after updating. Use `/hooks` to renew trust when the installed plugin bundle changes, including edits to `AGENTS.md` or the hook command. Before deploying plugin changes, run `scripts/check-plugins.py`.
 
@@ -241,6 +247,8 @@ copilot plugin update xlm@dotagents
 ```
 
 `copilot plugin marketplace update dotagents` only re-fetches the catalog. `copilot plugin update xlm@dotagents` pulls the new plugin files.
+
+Custom marketplaces do not auto-update by default. Set `autoUpdate: true` on the `dotagents` entry of `extraKnownMarketplaces` in your user settings to update at the start of each interactive or `-p` session. See the [Copilot CLI plugin reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-plugin-reference).
 
 Before deploying plugin changes, run `scripts/check-plugins.py`.
 
@@ -281,7 +289,7 @@ Things that are easy to get wrong:
 
 - **The Codex marketplace is not in `.codex-plugin/`.** Claude keeps its manifest and marketplace together, but Codex only reads a marketplace from `.agents/plugins/marketplace.json`, or the Claude or Cursor marketplace as a fallback. Codex 0.171.0 rejects a `.codex-plugin/marketplace.json`.
 - **Root `.agents/` is not `agents/.agents/`.** The root `.agents/` holds only the Codex marketplace, and any other root `.agents/` state is gitignored. Skills and rules go in `agents/.agents/`. Anything else under the root `.agents/` is not exposed by any plugin.
-- **Shared metadata is repeated.** `name`, `description` and `author` appear in all four manifests, and the marketplace name and plugin list appear in both marketplaces. Change them together. `scripts/check-plugins.py` fails if they differ.
+- **Shared metadata is repeated.** `name`, `version`, `description` and `author` appear in all four manifests, and the marketplace name and plugin list appear in both marketplaces. Change them together. `scripts/check-plugins.py` fails if they differ.
 
 ### Shared hook
 
@@ -294,6 +302,8 @@ To check metadata for all four manifests and both marketplaces, plus install, sk
 # Requires Python 3 with PyYAML, codex, claude, copilot, bash and jq on PATH
 scripts/check-plugins.py
 ```
+
+For a fast version-only check without the CLIs, run `python3 scripts/check-plugins.py --versions-only`. To set all four versions together, run `python3 scripts/set-version.py X.Y.Z`. The release workflow uses these after computing the next version with `git cliff --bumped-version`.
 
 The check uses throwaway Codex, Claude Code and Copilot CLI homes and removes them afterwards. Set `CODEX_BIN`, `CLAUDE_BIN` or `COPILOT_BIN` to test binaries outside `PATH`. Claude Code's no-login session lists user-invocable skills, including manual-only skills, and fires the hook before authentication fails. Copilot CLI lists all plugin skills without invocation-policy filtering. Its hook command is run directly and checked for JSON `additionalContext` containing the root `AGENTS.md`. The check does not call a model, so it cannot show that a trusted Codex session receives the rules or that Copilot injects them into a session. GitHub Actions runs the same check with Codex pinned to 0.171.0, Claude Code to 2.1.330 and Copilot CLI to 1.0.114. The Ubuntu runner includes `jq`.
 
