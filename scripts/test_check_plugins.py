@@ -84,15 +84,26 @@ class CopilotSkillNamesTests(unittest.TestCase):
                 self.assertEqual(checks.copilot_skill_names(output), set())
 
     def test_heading_must_match_exactly(self):
-        for heading in ('plugin skills:', 'Plugin skills', '  Plugin skills:'):
-            with self.subTest(heading=heading):
+        cases = {
+            'wrong capitalization': 'plugin skills:',
+            'missing colon': 'Plugin skills',
+            'indented heading': '  Plugin skills:',
+        }
+        for case, heading in cases.items():
+            with self.subTest(case=case, heading=heading):
                 self.assertEqual(
                     checks.copilot_skill_names(heading + '\n  other - Other.\n'), set(),
                 )
 
     def test_malformed_entry_is_rejected(self):
-        for entry in ('missing-separator', 'name - ', ' - Description.', 'name-Description.'):
-            with self.subTest(entry=entry), self.assertRaises(ValueError):
+        cases = {
+            'missing separator': 'missing-separator',
+            'missing description': 'name - ',
+            'missing name': ' - Description.',
+            'missing spaces around separator': 'name-Description.',
+        }
+        for case, entry in cases.items():
+            with self.subTest(case=case, entry=entry), self.assertRaises(ValueError):
                 checks.copilot_skill_names('Plugin skills:\n  ' + entry + '\n')
 
 
