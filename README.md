@@ -192,6 +192,11 @@ All four plugin manifests carry the same semver version. After each push to `mai
 
 The plugin list command in all four CLIs shows the installed version (`devin plugins list`, or `claude`, `codex` and `copilot plugin list`). Compare it with the [latest GitHub release](https://github.com/xlm/dotagents/releases/latest) to check whether you are up to date. Merge PRs with rebase merge so conventional commit types survive and determine the bump.
 
+Pull `main` before branching or pushing to it. The bot adds a `release: X.Y.Z` commit after each release.
+Never force-push `main`. Rewriting a `release:` commit can leave its tag off main and block releases until the tag is fixed by hand.
+If publication fails after pushing, rerun the Release workflow run while that `release:` commit is still main's head to recover the missing GitHub release.
+A push to `main` mid-release can cause an expected failure. The next run releases all changes once their checks pass.
+
 ### Deploying changes
 
 #### Devin
